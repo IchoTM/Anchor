@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -68,6 +69,22 @@ class PresageTelemetryResponse(BaseModel):
     biometrics: Dict[str, Any]
 
 
+async def _parse_form_payload(request: Request) -> Dict[str, Any]:
+    """
+    Robust form parser that uses Starlette's request.form() when available,
+    falling back to standard library urllib.parse for urlencoded data.
+    """
+    try:
+        form_data = await request.form()
+        return dict(form_data)
+    except (AssertionError, ImportError):
+        # python-multipart not installed; decode urlencoded data directly
+        raw_body = await request.body()
+        decoded = raw_body.decode("utf-8", errors="replace")
+        parsed = urllib.parse.parse_qs(decoded, keep_blank_values=True)
+        return {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+
+
 async def _process_incoming_webhook(request: Request, source: str) -> Any:
     """
     Parses and grounds an incoming message from iMessage, Photon, or SMS gateway.
@@ -79,8 +96,7 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
     payload: Dict[str, Any] = {}
 
     if is_form:
-        form_data = await request.form()
-        payload = dict(form_data)
+        payload = await _parse_form_payload(request)
         if "Body" in payload and "text" not in payload:
             payload["text"] = payload["Body"]
         if "From" in payload and "sender" not in payload:
@@ -90,8 +106,7 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
             payload = await request.json()
         except Exception:
             try:
-                form_data = await request.form()
-                payload = dict(form_data)
+                payload = await _parse_form_payload(request)
                 is_form = True
             except Exception as exc:
                 raise HTTPException(status_code=400, detail="Invalid request payload") from exc
