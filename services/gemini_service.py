@@ -60,21 +60,6 @@ def _clean_grounded_output(text: str) -> str:
 
 
 def _generate_sync(client: genai.Client, model: str, contents: str, config: types.GenerateContentConfig) -> str:
-    # 1. Check if client provides the new Interactions API
-    if hasattr(client, "interactions") and hasattr(client.interactions, "create"):
-        try:
-            interaction_resp = client.interactions.create(
-                model=model,
-                input=contents,
-            )
-            if hasattr(interaction_resp, "output") and interaction_resp.output:
-                return str(interaction_resp.output)
-            if hasattr(interaction_resp, "text") and interaction_resp.text:
-                return str(interaction_resp.text)
-        except Exception:
-            pass  # Fall through to generate_content
-
-    # 2. Standard generate_content call
     response = client.models.generate_content(
         model=model,
         contents=contents,
@@ -113,16 +98,14 @@ async def generate_grounding_message(
     client = get_genai_client()
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    preferred_model = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
-    # Priority candidate list based on current API availability
+    # Priority candidate pool: tested active models first
     candidate_pool = [
         preferred_model,
-        "gemini-3.8-flash",
-        "models/gemini-3.8-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-flash-latest",
+        "gemini-2.5-flash-lite",
     ]
 
     candidates: list[str] = []
@@ -145,18 +128,21 @@ async def generate_grounding_message(
                 return text
         except Exception as exc:
             last_error = exc
-            print(f"[Anchor Warning] Gemini model {model_name} failed: {exc}")
+            err_msg = str(exc) or repr(exc)
+            print(f"[Anchor Warning] Gemini model {model_name} failed: {err_msg}")
             continue
 
-    # Try listing available models directly from the client if hardcoded names failed
+    # Fallback to discovering available models if hardcoded candidates fail
     try:
         print("[Anchor Gemini] Querying ModelService for available models...")
         models_page = await asyncio.to_thread(client.models.list)
         for m in models_page:
             model_id = getattr(m, "name", None) or getattr(m, "id", None)
             if model_id and ("gemini" in model_id.lower() or "flash" in model_id.lower()):
+                clean_id = model_id.replace("models/", "")
+                if clean_id in candidates:
+                    continue
                 try:
-                    clean_id = model_id.replace("models/", "")
                     print(f"[Anchor Gemini] Attempting discovered model {clean_id}...")
                     text = await _call_gemini_single(client, clean_id, user_prompt)
                     if text:
