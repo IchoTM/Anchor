@@ -1,5 +1,7 @@
+import json
 import os
 import urllib.parse
+import urllib.request
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -56,7 +58,7 @@ class IMessageWebhookResponse(BaseModel):
 
 
 class PresageTelemetryRequest(BaseModel):
-    anxiety_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Anxiety score between 0.0 and 1.0")
+    anxiety_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Anxiety score between 0.0 to 1.0")
     anxiety_detected: Optional[bool] = Field(None, description="Direct flag for elevated anxiety")
     heart_rate: Optional[float] = Field(None, description="Current heart rate in BPM")
     respiration_rate: Optional[float] = Field(None, description="Breaths per minute")
@@ -69,6 +71,28 @@ class PresageTelemetryResponse(BaseModel):
     biometrics: Dict[str, Any]
 
 
+def _detect_ngrok_tunnel_url() -> Optional[str]:
+    """
+    Attempts to query ngrok's local client API (127.0.0.1:4040/api/tunnels)
+    to automatically retrieve the active public tunnel URL.
+    """
+    try:
+        req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels", headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=0.8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            tunnels = data.get("tunnels", [])
+            # Prefer HTTPS tunnel
+            for tunnel in tunnels:
+                public_url = tunnel.get("public_url", "")
+                if public_url.startswith("https://"):
+                    return public_url.rstrip("/")
+            if tunnels:
+                return tunnels[0].get("public_url", "").rstrip("/")
+    except Exception:
+        pass
+    return None
+
+
 async def _parse_form_payload(request: Request) -> Dict[str, Any]:
     """
     Robust form parser that uses Starlette's request.form() when available,
@@ -78,7 +102,6 @@ async def _parse_form_payload(request: Request) -> Dict[str, Any]:
         form_data = await request.form()
         return dict(form_data)
     except (AssertionError, ImportError):
-        # python-multipart not installed; decode urlencoded data directly
         raw_body = await request.body()
         decoded = raw_body.decode("utf-8", errors="replace")
         parsed = urllib.parse.parse_qs(decoded, keep_blank_values=True)
@@ -131,6 +154,24 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
         return Response(content=twiml_response, media_type="application/xml")
 
     return IMessageWebhookResponse(**result)
+
+
+@app.get("/api/tunnel-url")
+async def get_tunnel_url(request: Request):
+    """
+    Returns the live public tunnel URL.
+    Checks ngrok's local API first, then falls back to environment variables or request headers.
+    """
+    ngrok_url = _detect_ngrok_tunnel_url()
+    if ngrok_url:
+        return {"public_url": ngrok_url, "source": "ngrok_api"}
+
+    env_url = os.getenv("PUBLIC_URL", os.getenv("NGROK_URL", "")).rstrip("/")
+    if env_url:
+        return {"public_url": env_url, "source": "environment"}
+
+    origin = str(request.base_url).rstrip("/")
+    return {"public_url": origin, "source": "origin"}
 
 
 @app.post("/webhook/imessage")
@@ -543,7 +584,7 @@ async def serve_demo_tablet():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anchor • Eleanor's Bedside Care Station</title>
+  <title>Anchor • Grandma Eleanor's Bedside Station</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
@@ -1168,7 +1209,7 @@ async def serve_demo_tablet():
     </div>
     <div class="header-actions">
       <button class="btn-qr-action" onclick="openQrModal()">
-        <span>📱 Text Eleanor (QR Code)</span>
+        <span>📱 Text Grandma Eleanor (QR Code)</span>
       </button>
       <button class="btn-sound-gate" id="soundToggleBtn" onclick="toggleAudioPermission()">
         <span>🔊 Enable Sound</span>
@@ -1230,7 +1271,7 @@ async def serve_demo_tablet():
       </div>
 
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Judges can scan the QR code above to text Eleanor live from their personal phones.
+        Judges can scan the QR code above to text Grandma Eleanor live from their personal phones.
       </div>
     </div>
 
@@ -1348,10 +1389,10 @@ async def serve_demo_tablet():
         Scan this QR code with your phone to open the Caregiver iMessage interface.
       </p>
 
-      <img id="qrImage" class="qr-img" alt="QR Code to Text Eleanor">
+      <img id="qrImage" class="qr-img" alt="QR Code to Text Grandma Eleanor">
 
       <div class="tunnel-config-box">
-        <label>Mobile Sender URL (ngrok Tunnel)</label>
+        <label>Mobile Sender URL (Auto-Detected)</label>
         <div class="tunnel-row">
           <input type="text" id="tunnelInput" class="tunnel-input" placeholder="https://your-tunnel.ngrok-free.dev">
           <button class="btn-apply-tunnel" onclick="applyTunnelUrl()">Update</button>
@@ -1367,22 +1408,34 @@ async def serve_demo_tablet():
     let lastEventId = null;
     let audioUnlocked = false;
 
-    // Server-configured tunnel (from env) or cached in localStorage
     const serverPublicUrl = "{configured_public_url}";
 
-    function resolveMobileBaseUrl() {{
+    async function resolveMobileBaseUrl() {{
+      // 1. Try querying the server's live tunnel detector (ngrok API)
+      try {{
+        const resp = await fetch('/api/tunnel-url');
+        const data = await resp.json();
+        if (data.public_url && !data.public_url.includes('localhost') && !data.public_url.includes('127.0.0.1')) {{
+          return data.public_url;
+        }}
+      }} catch (e) {{}}
+
+      // 2. Check localStorage cache
       const cached = localStorage.getItem('anchor_tunnel_url');
       if (cached && cached.trim().length > 0) {{
         return cached.trim().replace(/\\/+$/, '');
       }}
+
+      // 3. Check server-injected environment variable
       if (serverPublicUrl && serverPublicUrl.length > 0) {{
         return serverPublicUrl;
       }}
-      // If the bedside dashboard itself is loaded via a public tunnel/domain
+
+      // 4. If loaded on a remote domain/host, use current window origin
       if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {{
         return window.location.origin;
       }}
-      // Fallback
+
       return window.location.origin;
     }}
 
@@ -1393,10 +1446,10 @@ async def serve_demo_tablet():
       document.getElementById('qrImage').src = qrApiUrl;
     }}
 
-    function openQrModal() {{
-      const base = resolveMobileBaseUrl();
-      renderQr(base);
+    async function openQrModal() {{
       document.getElementById('qrModal').style.display = 'grid';
+      const base = await resolveMobileBaseUrl();
+      renderQr(base);
     }}
 
     function closeQrModal() {{
@@ -1409,7 +1462,6 @@ async def serve_demo_tablet():
       if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {{
         inputVal = 'https://' + inputVal;
       }}
-      // Strip trailing /text or /
       inputVal = inputVal.replace(/\\/text\\/?$/, '').replace(/\\/+$/, '');
       localStorage.setItem('anchor_tunnel_url', inputVal);
       renderQr(inputVal);
@@ -1431,7 +1483,6 @@ async def serve_demo_tablet():
       }});
     }}
 
-    // Auto unlock on first user interaction anywhere
     window.addEventListener('click', () => {{
       if (!audioUnlocked) toggleAudioPermission();
     }}, {{ once: true }});
@@ -1587,7 +1638,6 @@ async def serve_demo_tablet():
         statusText.style.color = 'var(--accent)';
         replayBtn.style.display = 'inline-flex';
 
-        // Avoid interrupting or restarting if this exact audio stream is already playing
         if (isNewAudio || audioEl.paused) {{
           audioEl.src = data.audio_url;
           audioEl.currentTime = 0;
