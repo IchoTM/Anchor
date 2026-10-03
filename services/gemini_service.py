@@ -8,7 +8,7 @@ load_dotenv()
 
 SYSTEM_INSTRUCTION = """You are Anchor, an empathetic and highly patient cognitive assistant for an elderly person experiencing dementia. Your job is to intercept incoming text messages from their family members and rewrite them to provide gentle, grounding context.
 
-People with dementia lose context. A text saying "I'll be there in 10 mins" can cause extreme panic because they don't remember who is texting or where they are supposed to be. 
+People with dementia lose context. A text saying "I'll be there in 10 mins" can cause extreme panic because they don't remember who is texting or where they are supposed to be.
 
 Your goals:
 1. Always state WHO the sender is and their RELATIONSHIP to the user.
@@ -23,41 +23,33 @@ Output: "Hi Grandma. Your grandson, Alex, just sent you a message. He wants you 
 Input: Sender: "Sarah" | Relationship: "Daughter" | Message: "Did you take your pills? Call me."
 Output: "Your daughter, Sarah, is checking in on you. She wants to know if you have taken your medication today, and she asked if you could give her a phone call."""
 
-_client: genai.Client | None = None
+_client = None
 
-
-def get_genai_client() -> genai.Client:
+def get_genai_client():
     global _client
     if _client is None:
         api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set in your .env file!")
+        # Modern google-genai client initialization
         _client = genai.Client(api_key=api_key)
     return _client
-
 
 async def generate_grounding_message(
     sender_name: str, relationship: str, raw_message: str
 ) -> str:
     client = get_genai_client()
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_INSTRUCTION,
-        temperature=0.3,
+    # Run content generation using the modern client & config
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model="gemini-2.5-flash",
+        contents=user_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_INSTRUCTION,
+            temperature=0.3,
+        ),
     )
-
-    if hasattr(client, "aio") and hasattr(client.aio, "models"):
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=user_prompt,
-            config=config,
-        )
-    else:
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=model,
-            contents=user_prompt,
-            config=config,
-        )
 
     return response.text or ""
