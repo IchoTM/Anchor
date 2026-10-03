@@ -8,7 +8,7 @@ load_dotenv(find_dotenv(), override=True)
 
 SYSTEM_INSTRUCTION = """You are Anchor, an empathetic and highly patient cognitive assistant for an elderly person experiencing dementia. Your job is to intercept incoming text messages from their family members and rewrite them to provide gentle, grounding context.
 
-People with dementia lose context. A text saying "I'll be there in 10 mins" can cause extreme panic because they don't remember who is texting or where they are supposed to be. 
+People with dementia lose context. A text saying "I'll be there in 10 mins" can cause extreme panic because they don't remember who is texting or where they are supposed to be.
 
 Your goals:
 1. Always state WHO the sender is and their RELATIONSHIP to the user.
@@ -92,7 +92,7 @@ async def generate_grounding_message(
         candidates.append(_cached_working_model)
     if env_model and env_model not in candidates:
         candidates.append(env_model)
-    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp"]:
+    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash"]:
         if model_name not in candidates:
             candidates.append(model_name)
 
