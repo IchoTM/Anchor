@@ -39,6 +39,7 @@ class IMessageWebhookRequest(BaseModel):
 
 
 class IMessageWebhookResponse(BaseModel):
+    event_id: Optional[str] = Field(None, description="Unique event identifier")
     sender_name: str
     relationship: str
     raw_message: str
@@ -314,6 +315,7 @@ async def serve_demo_tablet():
     }
 
     select, input, textarea {
+      width: 100%;
       background: #182232;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 10px;
@@ -668,12 +670,10 @@ async def serve_demo_tablet():
           </select>
         </div>
 
-        <div class="field-group" id="customContactGroup" style="display:none;">
-          <label>Sender Name & Relationship</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="customName" placeholder="Name (e.g. Emily)">
-            <input type="text" id="customRelation" placeholder="Relationship (e.g. Niece)">
-          </div>
+        <div class="field-group" id="customContactGroup" style="display:none; gap: 8px;">
+          <label>Custom Sender Info</label>
+          <input type="text" id="customName" placeholder="Name (e.g. Emily)">
+          <input type="text" id="customRelation" placeholder="Relationship to Patient (e.g. Niece)">
         </div>
 
         <div class="field-group">
@@ -698,7 +698,7 @@ async def serve_demo_tablet():
       </div>
 
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Interceps incoming text messages, normalizes metadata through Photon, and grounds cognitive disorientation via Gemini.
+        Intercepts incoming text messages, normalizes metadata through Photon, and grounds cognitive disorientation via Gemini.
       </div>
     </div>
 
@@ -802,6 +802,7 @@ async def serve_demo_tablet():
 
   <script>
     let currentAudioUrl = null;
+    let lastEventId = null;
 
     // Clock
     function updateClock() {
@@ -912,6 +913,9 @@ async def serve_demo_tablet():
         });
 
         const data = await response.json();
+        if (data.event_id) {
+          lastEventId = data.event_id;
+        }
         updateBedsideDisplay(data, avatar);
       } catch (err) {
         alert("Failed to communicate with Anchor server: " + err);
@@ -922,6 +926,10 @@ async def serve_demo_tablet():
     }
 
     function updateBedsideDisplay(data, avatar) {
+      if (data.event_id) {
+        lastEventId = data.event_id;
+      }
+
       document.getElementById('avatarDisplay').textContent = avatar || "💬";
       document.getElementById('senderNameDisplay').textContent = data.sender_name;
       document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
@@ -934,17 +942,22 @@ async def serve_demo_tablet():
       const audioEl = document.getElementById('audioElement');
 
       if (data.audio_generated && data.audio_url) {
+        const isNewAudio = (data.audio_url !== currentAudioUrl);
         currentAudioUrl = data.audio_url;
         wave.style.opacity = '1';
         statusText.textContent = "Rachel's voice intervention playing...";
         statusText.style.color = 'var(--accent)';
         replayBtn.style.display = 'inline-flex';
 
-        audioEl.src = data.audio_url;
-        audioEl.play().catch(e => {
-          console.warn("Autoplay blocked by browser policy, click 'Play Voice' button:", e);
-          statusText.textContent = "Voice ready (Click Play Voice to listen)";
-        });
+        // Avoid interrupting or restarting if this exact audio stream is already playing
+        if (isNewAudio || audioEl.paused) {
+          audioEl.src = data.audio_url;
+          audioEl.currentTime = 0;
+          audioEl.play().catch(e => {
+            console.warn("Autoplay blocked by browser policy, click 'Play Voice' button:", e);
+            statusText.textContent = "Voice ready (Click Play Voice to listen)";
+          });
+        }
 
         audioEl.onended = () => {
           wave.style.opacity = '0.3';
@@ -964,6 +977,7 @@ async def serve_demo_tablet():
       const audioEl = document.getElementById('audioElement');
       if (currentAudioUrl) {
         audioEl.src = currentAudioUrl;
+        audioEl.currentTime = 0;
         audioEl.play();
         document.getElementById('audioWave').style.opacity = '1';
         document.getElementById('audioStatusText').textContent = "Replaying voice intervention...";
@@ -971,12 +985,11 @@ async def serve_demo_tablet():
     }
 
     // Background poller for live external webhooks (e.g. from Photon or curl)
-    let lastEventId = null;
     setInterval(async () => {
       try {
         const res = await fetch('/api/events/latest');
         const data = await res.json();
-        if (data.event && data.event.event_id !== lastEventId) {
+        if (data.event && data.event.event_id && data.event.event_id !== lastEventId) {
           lastEventId = data.event.event_id;
           updateBedsideDisplay(data.event, "💬");
         }
