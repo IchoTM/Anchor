@@ -45,7 +45,7 @@ def get_genai_client() -> genai.Client:
 
 
 def _find_available_model(client: genai.Client) -> str:
-    """Find a supported 2.x flash model from client.models.list()."""
+    """Find a supported 3.x flash model from client.models.list()."""
     candidate_names = []
     try:
         for m in client.models.list():
@@ -54,10 +54,10 @@ def _find_available_model(client: genai.Client) -> str:
             candidate_names.append(base_name)
 
         for name in candidate_names:
-            if "2.5-flash" in name:
+            if "3.8-flash" in name:
                 return name
         for name in candidate_names:
-            if "2.0-flash" in name:
+            if "3.5-flash" in name:
                 return name
         for name in candidate_names:
             if "flash" in name and "gemini" in name:
@@ -70,7 +70,58 @@ def _find_available_model(client: genai.Client) -> str:
     except Exception as exc:
         print(f"[Anchor Warning] Could not list models: {exc}")
 
-    return "gemini-2.5-flash"
+    return "gemini-3.8-flash"
+
+
+async def _call_gemini(client: genai.Client, model: str, user_prompt: str) -> str:
+    """Attempt call via Interactions API first, fallback to generate_content."""
+    full_prompt = f"{SYSTEM_INSTRUCTION}\n\nInput: {user_prompt}"
+
+    # Try Interactions API if available on client
+    if hasattr(client, "aio") and hasattr(client.aio, "interactions"):
+        try:
+            interaction = await client.aio.interactions.create(
+                model=model,
+                input=full_prompt,
+            )
+            if interaction and getattr(interaction, "output_text", None):
+                return interaction.output_text
+        except Exception:
+            pass
+
+    if hasattr(client, "interactions"):
+        try:
+            interaction = await asyncio.to_thread(
+                client.interactions.create,
+                model=model,
+                input=full_prompt,
+            )
+            if interaction and getattr(interaction, "output_text", None):
+                return interaction.output_text
+        except Exception:
+            pass
+
+    # Fallback to generate_content
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_INSTRUCTION,
+        temperature=0.3,
+    )
+
+    if hasattr(client, "aio") and hasattr(client.aio, "models"):
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=user_prompt,
+            config=config,
+        )
+    else:
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model=model,
+            contents=user_prompt,
+            config=config,
+        )
+
+    return getattr(response, "text", "") or ""
 
 
 async def generate_grounding_message(
@@ -81,18 +132,13 @@ async def generate_grounding_message(
     client = get_genai_client()
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_INSTRUCTION,
-        temperature=0.3,
-    )
-
     env_model = os.getenv("GEMINI_MODEL")
     candidates = []
     if _cached_working_model:
         candidates.append(_cached_working_model)
     if env_model and env_model not in candidates:
         candidates.append(env_model)
-    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+    for model_name in ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"]:
         if model_name not in candidates:
             candidates.append(model_name)
 
@@ -100,46 +146,22 @@ async def generate_grounding_message(
 
     for model_name in candidates:
         try:
-            if hasattr(client, "aio") and hasattr(client.aio, "models"):
-                response = await client.aio.models.generate_content(
-                    model=model_name,
-                    contents=user_prompt,
-                    config=config,
-                )
-            else:
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=model_name,
-                    contents=user_prompt,
-                    config=config,
-                )
-            if response and response.text:
+            text = await _call_gemini(client, model_name, user_prompt)
+            if text:
                 _cached_working_model = model_name
-                return response.text
+                return text
         except Exception as exc:
             last_error = exc
             continue
 
-    # If predefined 2.x models fail, dynamically query available models
+    # If predefined models fail, dynamically query available models from the account
     try:
         discovered_model = await asyncio.to_thread(_find_available_model, client)
         if discovered_model not in candidates:
-            if hasattr(client, "aio") and hasattr(client.aio, "models"):
-                response = await client.aio.models.generate_content(
-                    model=discovered_model,
-                    contents=user_prompt,
-                    config=config,
-                )
-            else:
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=discovered_model,
-                    contents=user_prompt,
-                    config=config,
-                )
-            if response and response.text:
+            text = await _call_gemini(client, discovered_model, user_prompt)
+            if text:
                 _cached_working_model = discovered_model
-                return response.text
+                return text
     except Exception as exc:
         last_error = exc
 
