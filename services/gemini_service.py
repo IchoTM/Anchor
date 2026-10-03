@@ -36,10 +36,6 @@ def get_genai_client() -> genai.Client:
             raise ValueError("GEMINI_API_KEY is not set in your .env file!")
         api_key = api_key.strip().strip("'\"")
 
-        os.environ["GEMINI_API_KEY"] = api_key
-        os.environ["GOOGLE_API_KEY"] = api_key
-        os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "false"
-
         _client = genai.Client(api_key=api_key, vertexai=False)
     return _client
 
@@ -73,22 +69,20 @@ def _find_available_model(client: genai.Client) -> str:
     return "gemini-3.8-flash"
 
 
+def _generate_sync(client: genai.Client, model: str, contents: str, config: types.GenerateContentConfig) -> str:
+    response = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config,
+    )
+    return getattr(response, "text", "") or ""
+
+
 async def _call_gemini(client: genai.Client, model: str, user_prompt: str) -> str:
     """Attempt call via Interactions API first, fallback to generate_content."""
     full_prompt = f"{SYSTEM_INSTRUCTION}\n\nInput: {user_prompt}"
 
     # Try Interactions API if available on client
-    if hasattr(client, "aio") and hasattr(client.aio, "interactions"):
-        try:
-            interaction = await client.aio.interactions.create(
-                model=model,
-                input=full_prompt,
-            )
-            if interaction and getattr(interaction, "output_text", None):
-                return interaction.output_text
-        except Exception:
-            pass
-
     if hasattr(client, "interactions"):
         try:
             interaction = await asyncio.to_thread(
@@ -101,27 +95,13 @@ async def _call_gemini(client: genai.Client, model: str, user_prompt: str) -> st
         except Exception:
             pass
 
-    # Fallback to generate_content
+    # Fallback to generate_content synchronously in a worker thread to avoid AFC warnings
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
         temperature=0.3,
     )
 
-    if hasattr(client, "aio") and hasattr(client.aio, "models"):
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=user_prompt,
-            config=config,
-        )
-    else:
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=model,
-            contents=user_prompt,
-            config=config,
-        )
-
-    return getattr(response, "text", "") or ""
+    return await asyncio.to_thread(_generate_sync, client, model, user_prompt, config)
 
 
 async def generate_grounding_message(

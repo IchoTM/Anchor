@@ -1,24 +1,32 @@
 import os
+from typing import Any, Dict, Optional
 from dotenv import load_dotenv, find_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from services.gemini_service import generate_grounding_message
 from services.elevenlabs_service import generate_speech_audio
+from services.photon_service import process_photon_message, parse_photon_payload
 
 load_dotenv(find_dotenv(), override=True)
 
 app = FastAPI(
     title="Anchor",
-    description="Real-time iMessage dementia care assistant",
+    description="Real-time iMessage dementia care assistant powered by Photon Spectrum and Gemini",
     version="0.1.0",
 )
 
 
 class IMessageWebhookRequest(BaseModel):
-    sender_name: str = Field(..., description="Name of the sender")
-    relationship: str = Field(..., description="Relationship to the recipient (e.g. Grandson, Daughter)")
-    raw_message: str = Field(..., description="The original incoming message text")
+    sender_name: Optional[str] = Field(None, description="Name of the sender")
+    relationship: Optional[str] = Field(None, description="Relationship to recipient")
+    raw_message: Optional[str] = Field(None, description="Incoming message text")
+    # Optional Photon fields
+    event: Optional[str] = Field(None, description="Photon event type, e.g. message.received")
+    data: Optional[Dict[str, Any]] = Field(None, description="Photon event data payload")
+    text: Optional[str] = Field(None, description="Message text alternate")
+    body: Optional[str] = Field(None, description="Message body alternate")
+    sender: Optional[Any] = Field(None, description="Sender information")
 
 
 class IMessageWebhookResponse(BaseModel):
@@ -30,37 +38,44 @@ class IMessageWebhookResponse(BaseModel):
 
 
 @app.post("/webhook/imessage", response_model=IMessageWebhookResponse)
-async def handle_imessage_webhook(payload: IMessageWebhookRequest):
+async def handle_imessage_webhook(request: Request):
     try:
-        grounded_message = await generate_grounding_message(
-            sender_name=payload.sender_name,
-            relationship=payload.relationship,
-            raw_message=payload.raw_message,
-        )
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+
+    try:
+        result = await process_photon_message(payload, generate_audio=True)
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate grounding message: {exc}",
+            detail=f"Failed to process message: {exc}",
         ) from exc
 
-    print(f"[Anchor Grounded Message]: {grounded_message}")
+    print(f"[Anchor Grounded Message]: {result['grounded_message']}")
 
-    audio_generated = False
+    return IMessageWebhookResponse(**result)
+
+
+@app.post("/webhook/photon", response_model=IMessageWebhookResponse)
+async def handle_photon_webhook(request: Request):
+    """Dedicated endpoint for Photon / Spectrum framework webhooks."""
     try:
-        audio_bytes = await generate_speech_audio(grounded_message)
-        if audio_bytes and len(audio_bytes) > 0:
-            audio_generated = True
-            print(f"[Anchor TTS]: Successfully generated {len(audio_bytes)} bytes of speech audio.")
+        payload = await request.json()
     except Exception as exc:
-        print(f"[Anchor Warning] Failed to generate speech audio: {exc}")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-    return IMessageWebhookResponse(
-        sender_name=payload.sender_name,
-        relationship=payload.relationship,
-        raw_message=payload.raw_message,
-        grounded_message=grounded_message,
-        audio_generated=audio_generated,
-    )
+    try:
+        result = await process_photon_message(payload, generate_audio=True)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process Photon webhook: {exc}",
+        ) from exc
+
+    print(f"[Anchor Grounded Message from Photon]: {result['grounded_message']}")
+
+    return IMessageWebhookResponse(**result)
 
 
 if __name__ == "__main__":
