@@ -18,7 +18,6 @@ DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 def get_elevenlabs_client() -> ElevenLabs:
     global _client
     if _client is None:
-        load_dotenv(find_dotenv(), override=True)
         api_key = os.getenv("ELEVENLABS_API_KEY")
         if not api_key:
             raise ValueError("ELEVENLABS_API_KEY is not set in your .env file!")

@@ -5,7 +5,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv(), override=True)
 
-DEFAULT_ANXIETY_THRESHOLD = float(os.getenv("PRESAGE_ANXIETY_THRESHOLD", "0.60"))
+DEFAULT_ANXIETY_THRESHOLD = 0.60
 
 # In-memory store for the latest biometric emotional telemetry from Presage
 _patient_state: Dict[str, Any] = {
@@ -16,6 +16,14 @@ _patient_state: Dict[str, Any] = {
     "stress_index": 0.25,
     "last_updated": time.time(),
 }
+
+
+def get_anxiety_threshold() -> float:
+    """Returns the configured anxiety detection threshold."""
+    try:
+        return float(os.getenv("PRESAGE_ANXIETY_THRESHOLD", DEFAULT_ANXIETY_THRESHOLD))
+    except ValueError:
+        return DEFAULT_ANXIETY_THRESHOLD
 
 
 def get_current_biometrics() -> Dict[str, Any]:
@@ -34,7 +42,7 @@ def update_patient_biometrics(
     """
     Updates the active patient biometric state from Presage sensor telemetry.
     """
-    threshold = float(os.getenv("PRESAGE_ANXIETY_THRESHOLD", str(DEFAULT_ANXIETY_THRESHOLD)))
+    threshold = get_anxiety_threshold()
 
     if anxiety_score is not None:
         _patient_state["anxiety_score"] = max(0.0, min(1.0, float(anxiety_score)))
@@ -65,30 +73,42 @@ def evaluate_anxiety(payload: Optional[Dict[str, Any]] = None) -> Tuple[bool, fl
     Returns:
         (is_anxiety_elevated: bool, anxiety_score: float, biometrics_snapshot: dict)
     """
-    threshold = float(os.getenv("PRESAGE_ANXIETY_THRESHOLD", str(DEFAULT_ANXIETY_THRESHOLD)))
+    threshold = get_anxiety_threshold()
 
     if payload:
         # Check explicit top-level or nested presage fields in payload
-        presage_data = payload.get("presage") or payload.get("biometrics") or {}
+        presage_data = payload.get("presage") or payload.get("biometrics")
         if isinstance(presage_data, dict):
+            score = None
+            detected = None
             if "anxiety_score" in presage_data:
                 score = float(presage_data["anxiety_score"])
-                is_high = score >= threshold or bool(presage_data.get("anxiety_detected", False))
-                return is_high, score, presage_data
-            if "anxiety_detected" in presage_data:
-                is_high = bool(presage_data["anxiety_detected"])
-                score = 0.85 if is_high else 0.20
-                return is_high, score, presage_data
+                detected = score >= threshold or bool(presage_data.get("anxiety_detected", False))
+            elif "anxiety_detected" in presage_data:
+                detected = bool(presage_data["anxiety_detected"])
+                score = 0.85 if detected else 0.20
 
-        if "anxiety_detected" in payload:
-            is_high = bool(payload["anxiety_detected"])
-            score = float(payload.get("anxiety_score", 0.85 if is_high else 0.20))
-            return is_high, score, {"anxiety_detected": is_high, "anxiety_score": score}
+            if score is not None:
+                updated = update_patient_biometrics(
+                    anxiety_score=score,
+                    anxiety_detected=detected,
+                    heart_rate=presage_data.get("heart_rate"),
+                    respiration_rate=presage_data.get("respiration_rate"),
+                    stress_index=presage_data.get("stress_index"),
+                    metadata=presage_data.get("metadata"),
+                )
+                return bool(detected), score, updated
 
-        if "anxiety_score" in payload:
-            score = float(payload["anxiety_score"])
-            is_high = score >= threshold
-            return is_high, score, {"anxiety_score": score, "anxiety_detected": is_high}
+        if "anxiety_score" in payload or "anxiety_detected" in payload:
+            raw_score = payload.get("anxiety_score")
+            raw_detected = payload.get("anxiety_detected")
+            score = float(raw_score) if raw_score is not None else (0.85 if raw_detected else 0.20)
+            detected = bool(raw_detected) if raw_detected is not None else (score >= threshold)
+            updated = update_patient_biometrics(
+                anxiety_score=score,
+                anxiety_detected=detected,
+            )
+            return detected, score, updated
 
     # Fallback to current background biometric state
     current = get_current_biometrics()

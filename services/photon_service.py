@@ -3,6 +3,7 @@ import json
 import uuid
 import time
 import asyncio
+from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv, find_dotenv
 
@@ -25,7 +26,7 @@ DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
 
 # In-memory storage for audio bytes and processed message events
 _audio_store: Dict[str, bytes] = {}
-_recent_events: List[Dict[str, Any]] = []
+_recent_events: deque = deque(maxlen=50)
 
 
 def get_stored_audio(audio_id: str) -> Optional[bytes]:
@@ -35,7 +36,9 @@ def get_stored_audio(audio_id: str) -> Optional[bytes]:
 
 def get_recent_events(limit: int = 15) -> List[Dict[str, Any]]:
     """Retrieve the most recent processed Anchor events."""
-    return list(reversed(_recent_events[-limit:]))
+    events = list(_recent_events)
+    events.reverse()
+    return events[:limit]
 
 
 def get_latest_event() -> Optional[Dict[str, Any]]:
@@ -172,7 +175,7 @@ async def process_photon_message(
             print("[Anchor Pipeline] Anxiety detected! Triggering ElevenLabs voice intervention...")
             audio_bytes = await asyncio.wait_for(
                 generate_speech_audio(grounded_message),
-                timeout=7.0,
+                timeout=10.0,
             )
             if audio_bytes and len(audio_bytes) > 0:
                 audio_generated = True
@@ -181,7 +184,7 @@ async def process_photon_message(
                 audio_url = f"/audio/{audio_id}"
                 print(f"[Anchor TTS]: Generated {len(audio_bytes)} bytes of speech audio (ID: {audio_id}).")
         except asyncio.TimeoutError:
-            print("[Anchor Warning] ElevenLabs TTS timed out after 7.0s, proceeding without audio.")
+            print("[Anchor Warning] ElevenLabs TTS timed out after 10.0s, proceeding without audio.")
         except Exception as exc:
             print(f"[Anchor Warning] TTS generation failed: {exc}")
     else:
@@ -203,7 +206,4 @@ async def process_photon_message(
     }
 
     _recent_events.append(result_event)
-    if len(_recent_events) > 50:
-        _recent_events.pop(0)
-
     return result_event

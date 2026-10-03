@@ -23,7 +23,7 @@ Input: Sender: "Alex" | Relationship: "Grandson" | Message: "I'll be there in 10
 Output: "Hi Grandma. Your grandson, Alex, just sent you a message. He wants you to know that he is coming over and will be at your house in 10 minutes."
 
 Input: Sender: "Sarah" | Relationship: "Daughter" | Message: "Did you take your pills? Call me."
-Output: "Your daughter, Sarah, is checking in on you. She wants to know if you have taken your medication today, and she asked if you could give her a phone call."""
+Output: "Your daughter, Sarah, is checking in on you. She wants to know if you have taken your medication today, and she asked if you could give her a phone call." """
 
 _client: genai.Client | None = None
 _cached_working_model: str | None = None
@@ -32,7 +32,6 @@ _cached_working_model: str | None = None
 def get_genai_client() -> genai.Client:
     global _client
     if _client is None:
-        load_dotenv(find_dotenv(), override=True)
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not set in your .env file!")
@@ -45,7 +44,6 @@ def get_genai_client() -> genai.Client:
 def _clean_grounded_output(text: str) -> str:
     """Strips any echoed prompt headers (Input:/Output:) from the generated text."""
     cleaned = text.strip()
-    # If the response echoes the example format (e.g. Input: ... \nOutput: ...)
     if "Output:" in cleaned:
         cleaned = cleaned.split("Output:")[-1].strip()
     elif "output:" in cleaned.lower():
@@ -71,25 +69,6 @@ def _generate_sync(client: genai.Client, model: str, contents: str, config: type
 
 
 async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str) -> str:
-    full_prompt = f"{SYSTEM_INSTRUCTION}\n\nTask: Ground the following incoming message for the patient:\n{user_prompt}\nProvide only the grounding response message without headers:"
-
-    # Try Interactions API first if supported
-    if hasattr(client, "interactions"):
-        try:
-            interaction = await asyncio.wait_for(
-                asyncio.to_thread(
-                    client.interactions.create,
-                    model=model,
-                    input=full_prompt,
-                ),
-                timeout=7.0,
-            )
-            if interaction and getattr(interaction, "output_text", None):
-                return _clean_grounded_output(interaction.output_text)
-        except Exception as exc:
-            print(f"[Anchor Info] Interactions API call on {model} skipped ({exc}), trying generate_content...")
-
-    # Fallback to generate_content
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
         temperature=0.3,
@@ -97,7 +76,7 @@ async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str
 
     raw_text = await asyncio.wait_for(
         asyncio.to_thread(_generate_sync, client, model, user_prompt, config),
-        timeout=7.0,
+        timeout=8.0,
     )
     return _clean_grounded_output(raw_text)
 
@@ -110,13 +89,13 @@ async def generate_grounding_message(
     client = get_genai_client()
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-    candidates = []
+    preferred_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    candidates: list[str] = []
     if _cached_working_model:
         candidates.append(_cached_working_model)
     if preferred_model not in candidates:
         candidates.append(preferred_model)
-    for fallback in ["gemini-3.5-flash-lite", "gemini-3.8-flash"]:
+    for fallback in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
         if fallback not in candidates:
             candidates.append(fallback)
 

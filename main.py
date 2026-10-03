@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from services.photon_service import (
     process_photon_message,
@@ -23,6 +23,8 @@ app = FastAPI(
 
 
 class IMessageWebhookRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     sender_name: Optional[str] = Field(None, description="Name of the sender")
     relationship: Optional[str] = Field(None, description="Relationship to recipient")
     raw_message: Optional[str] = Field(None, description="Incoming message text")
@@ -65,9 +67,8 @@ class PresageTelemetryResponse(BaseModel):
     biometrics: Dict[str, Any]
 
 
-@app.post("/webhook/imessage", response_model=IMessageWebhookResponse)
-async def handle_imessage_webhook(request: Request):
-    """Handles incoming iMessage webhooks with Presage anxiety-gated voice generation."""
+async def _process_incoming_webhook(request: Request, source: str) -> IMessageWebhookResponse:
+    """Parses and grounds an incoming message from iMessage or Photon webhooks."""
     try:
         payload = await request.json()
     except Exception as exc:
@@ -78,31 +79,23 @@ async def handle_imessage_webhook(request: Request):
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process message: {exc}",
+            detail=f"Failed to process message from {source}: {exc}",
         ) from exc
 
-    print(f"[Anchor Grounded Message]: {result['grounded_message']}")
+    print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
     return IMessageWebhookResponse(**result)
+
+
+@app.post("/webhook/imessage", response_model=IMessageWebhookResponse)
+async def handle_imessage_webhook(request: Request):
+    """Handles incoming iMessage webhooks with Presage anxiety-gated voice generation."""
+    return await _process_incoming_webhook(request, source="iMessage")
 
 
 @app.post("/webhook/photon", response_model=IMessageWebhookResponse)
 async def handle_photon_webhook(request: Request):
     """Dedicated endpoint for Photon / Spectrum framework webhooks."""
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
-
-    try:
-        result = await process_photon_message(payload)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process Photon webhook: {exc}",
-        ) from exc
-
-    print(f"[Anchor Grounded Message from Photon]: {result['grounded_message']}")
-    return IMessageWebhookResponse(**result)
+    return await _process_incoming_webhook(request, source="Photon")
 
 
 @app.post("/telemetry/presage", response_model=PresageTelemetryResponse)
