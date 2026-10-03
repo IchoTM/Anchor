@@ -179,7 +179,7 @@ async def serve_demo_tablet():
         </div>
         """
 
-    html_content = f"""<!DOCTYPE html>
+    html_template = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -189,7 +189,7 @@ async def serve_demo_tablet():
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
   <style>
-    :root {{
+    :root {
       --bg: #0c1117;
       --card-bg: #161e29;
       --card-border: rgba(255, 255, 255, 0.08);
@@ -201,11 +201,11 @@ async def serve_demo_tablet():
       --panic-bg: rgba(244, 63, 94, 0.12);
       --text: #f1f5f9;
       --text-muted: #94a3b8;
-    }}
+    }
 
-    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {{
+    body {
       background: radial-gradient(circle at 50% 0%, #172334 0%, var(--bg) 75%);
       color: var(--text);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -214,9 +214,9 @@ async def serve_demo_tablet():
       display: flex;
       flex-direction: column;
       gap: 20px;
-    }}
+    }
 
-    header {{
+    header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -224,15 +224,15 @@ async def serve_demo_tablet():
       padding-bottom: 16px;
       flex-wrap: wrap;
       gap: 12px;
-    }}
+    }
 
-    .brand {{
+    .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-    }}
+    }
 
-    .brand-icon {{
+    .brand-icon {
       width: 40px;
       height: 40px;
       border-radius: 10px;
@@ -241,27 +241,27 @@ async def serve_demo_tablet():
       place-items: center;
       font-size: 22px;
       box-shadow: 0 0 20px var(--accent-glow);
-    }}
+    }
 
-    .brand-title h1 {{
+    .brand-title h1 {
       font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.02em;
-    }}
+    }
 
-    .brand-title p {{
+    .brand-title p {
       font-size: 13px;
       color: var(--text-muted);
-    }}
+    }
 
-    .header-actions {{
+    .header-actions {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-    }}
+    }
 
-    .header-badge {{
+    .header-badge {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -270,15 +270,15 @@ async def serve_demo_tablet():
       border-radius: 999px;
       border: 1px solid var(--card-border);
       font-size: 13px;
-    }}
+    }
 
-    .live-phone-badge {{
+    .live-phone-badge {
       background: rgba(56, 189, 248, 0.12);
       border-color: rgba(56, 189, 248, 0.35);
       color: #7dd3fc;
-    }}
+    }
 
-    .btn-sound-gate {{
+    .btn-sound-gate {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--card-border);
       color: var(--text);
@@ -290,46 +290,46 @@ async def serve_demo_tablet():
       align-items: center;
       gap: 6px;
       transition: all 0.2s;
-    }}
+    }
 
-    .btn-sound-gate.active {{
+    .btn-sound-gate.active {
       background: var(--calm-bg);
       border-color: rgba(16, 185, 129, 0.4);
       color: var(--calm);
-    }}
+    }
 
-    .pulse-dot {{
+    .pulse-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--calm);
       box-shadow: 0 0 10px var(--calm);
       animation: pulse 2s infinite;
-    }}
+    }
 
-    @keyframes pulse {{
-      0%, 100% {{ opacity: 1; transform: scale(1); }}
-      50% {{ opacity: 0.4; transform: scale(0.85); }}
-    }}
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
 
-    .container {{
+    .container {
       display: grid;
       grid-template-columns: 360px 320px 1fr;
       gap: 20px;
       flex: 1;
-    }}
+    }
 
-    @media (max-width: 1200px) {{
-      .container {{ grid-template-columns: 1fr 1fr; }}
-      .bedside-display {{ grid-column: span 2; }}
-    }}
+    @media (max-width: 1200px) {
+      .container { grid-template-columns: 1fr 1fr; }
+      .bedside-display { grid-column: span 2; }
+    }
 
-    @media (max-width: 840px) {{
-      .container {{ grid-template-columns: 1fr; }}
-      .bedside-display {{ grid-column: span 1; }}
-    }}
+    @media (max-width: 840px) {
+      .container { grid-template-columns: 1fr; }
+      .bedside-display { grid-column: span 1; }
+    }
 
-    .panel {{
+    .panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 18px;
@@ -338,24 +338,24 @@ async def serve_demo_tablet():
       flex-direction: column;
       gap: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-    }}
+    }
 
-    .panel-header {{
+    .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }}
+    }
 
-    .panel-title {{
+    .panel-title {
       font-size: 15px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--text-muted);
-    }}
+    }
 
     /* PHONE SIMULATOR */
-    .imessage-shell {{
+    .imessage-shell {
       background: #0f1621;
       border-radius: 14px;
       border: 1px solid var(--card-border);
@@ -363,21 +363,21 @@ async def serve_demo_tablet():
       display: flex;
       flex-direction: column;
       gap: 14px;
-    }}
+    }
 
-    .field-group {{
+    .field-group {
       display: flex;
       flex-direction: column;
       gap: 6px;
-    }}
+    }
 
-    label {{
+    label {
       font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
-    }}
+    }
 
-    select, input, textarea {{
+    select, input, textarea {
       width: 100%;
       background: #182232;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -388,20 +388,20 @@ async def serve_demo_tablet():
       font-size: 14px;
       outline: none;
       transition: all 0.2s;
-    }}
+    }
 
-    select:focus, input:focus, textarea:focus {{
+    select:focus, input:focus, textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 10px var(--accent-glow);
-    }}
+    }
 
-    .preset-chips {{
+    .preset-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-    }}
+    }
 
-    .chip {{
+    .chip {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--card-border);
       border-radius: 8px;
@@ -410,14 +410,14 @@ async def serve_demo_tablet():
       cursor: pointer;
       color: var(--text-muted);
       transition: 0.15s;
-    }}
+    }
 
-    .chip:hover {{
+    .chip:hover {
       background: rgba(255, 255, 255, 0.08);
       color: var(--text);
-    }}
+    }
 
-    .btn-send {{
+    .btn-send {
       background: linear-gradient(135deg, #0284c7, #0ea5e9);
       color: white;
       border: none;
@@ -431,16 +431,16 @@ async def serve_demo_tablet():
       align-items: center;
       gap: 8px;
       transition: all 0.2s;
-    }}
+    }
 
-    .btn-send:hover {{
+    .btn-send:hover {
       background: linear-gradient(135deg, #0369a1, #0284c7);
       box-shadow: 0 0 18px var(--accent-glow);
       transform: translateY(-1px);
-    }}
+    }
 
     /* PRESAGE BIOMETRIC RADAR */
-    .metric-card {{
+    .metric-card {
       background: #0f1621;
       border: 1px solid var(--card-border);
       border-radius: 14px;
@@ -448,20 +448,20 @@ async def serve_demo_tablet():
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }}
+    }
 
-    .metric-val {{
+    .metric-val {
       font-size: 26px;
       font-weight: 800;
       letter-spacing: -0.02em;
-    }}
+    }
 
-    .metric-lbl {{
+    .metric-lbl {
       font-size: 12px;
       color: var(--text-muted);
-    }}
+    }
 
-    .anxiety-toggle-box {{
+    .anxiety-toggle-box {
       background: #0f1621;
       border: 1px solid var(--card-border);
       border-radius: 14px;
@@ -469,45 +469,45 @@ async def serve_demo_tablet():
       display: flex;
       flex-direction: column;
       gap: 12px;
-    }}
+    }
 
-    .toggle-row {{
+    .toggle-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }}
+    }
 
-    .status-pill {{
+    .status-pill {
       font-size: 12px;
       font-weight: 700;
       padding: 4px 10px;
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-    }}
+    }
 
-    .status-calm {{
+    .status-calm {
       background: var(--calm-bg);
       color: var(--calm);
       border: 1px solid rgba(16, 185, 129, 0.3);
-    }}
+    }
 
-    .status-panic {{
+    .status-panic {
       background: var(--panic-bg);
       color: var(--panic);
       border: 1px solid rgba(244, 63, 94, 0.3);
-    }}
+    }
 
-    .slider {{
+    .slider {
       -webkit-appearance: none;
       width: 100%;
       height: 8px;
       border-radius: 4px;
       background: #253346;
       outline: none;
-    }}
+    }
 
-    .slider::-webkit-slider-thumb {{
+    .slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 22px;
       height: 22px;
@@ -515,10 +515,10 @@ async def serve_demo_tablet():
       background: var(--accent);
       cursor: pointer;
       box-shadow: 0 0 10px var(--accent-glow);
-    }}
+    }
 
     /* BEDSIDE PATIENT TABLET DISPLAY */
-    .bedside-display {{
+    .bedside-display {
       background: radial-gradient(circle at 50% 20%, #1f2e42 0%, #101620 100%);
       border: 2px solid rgba(255, 255, 255, 0.12);
       border-radius: 24px;
@@ -528,9 +528,9 @@ async def serve_demo_tablet():
       justify-content: space-between;
       position: relative;
       overflow: hidden;
-    }}
+    }
 
-    .bedside-display::after {{
+    .bedside-display::after {
       content: "";
       position: absolute;
       top: -50%;
@@ -539,51 +539,51 @@ async def serve_demo_tablet():
       height: 100%;
       background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
       pointer-events: none;
-    }}
+    }
 
-    .bedside-clock {{
+    .bedside-clock {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding-bottom: 18px;
-    }}
+    }
 
-    .time-large {{
+    .time-large {
       font-size: 42px;
       font-weight: 800;
       letter-spacing: -0.03em;
-    }}
+    }
 
-    .date-large {{
+    .date-large {
       font-size: 16px;
       color: var(--text-muted);
       margin-top: 2px;
-    }}
+    }
 
-    .patient-tag {{
+    .patient-tag {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--card-border);
       border-radius: 999px;
       padding: 6px 14px;
       font-size: 13px;
       font-weight: 600;
-    }}
+    }
 
-    .grounding-hero {{
+    .grounding-hero {
       margin: 30px 0;
       display: flex;
       flex-direction: column;
       gap: 20px;
-    }}
+    }
 
-    .sender-banner {{
+    .sender-banner {
       display: flex;
       align-items: center;
       gap: 16px;
-    }}
+    }
 
-    .sender-avatar {{
+    .sender-avatar {
       width: 58px;
       height: 58px;
       border-radius: 18px;
@@ -592,21 +592,21 @@ async def serve_demo_tablet():
       place-items: center;
       font-size: 26px;
       box-shadow: 0 6px 20px var(--accent-glow);
-    }}
+    }
 
-    .sender-names h2 {{
+    .sender-names h2 {
       font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.02em;
-    }}
+    }
 
-    .sender-names span {{
+    .sender-names span {
       font-size: 15px;
       color: var(--accent);
       font-weight: 600;
-    }}
+    }
 
-    .grounded-quote {{
+    .grounded-quote {
       font-family: 'Newsreader', Georgia, serif;
       font-size: 28px;
       line-height: 1.45;
@@ -617,9 +617,9 @@ async def serve_demo_tablet():
       padding: 24px;
       letter-spacing: -0.01em;
       transition: all 0.3s ease;
-    }}
+    }
 
-    .raw-intercepted {{
+    .raw-intercepted {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -629,9 +629,9 @@ async def serve_demo_tablet():
       padding: 10px 14px;
       border-radius: 10px;
       border: 1px dashed var(--card-border);
-    }}
+    }
 
-    .voice-player {{
+    .voice-player {
       background: #141d2a;
       border: 1px solid var(--card-border);
       border-radius: 16px;
@@ -640,40 +640,40 @@ async def serve_demo_tablet():
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-    }}
+    }
 
-    .voice-status {{
+    .voice-status {
       display: flex;
       align-items: center;
       gap: 10px;
       font-size: 14px;
-    }}
+    }
 
-    .audio-wave {{
+    .audio-wave {
       display: flex;
       align-items: center;
       gap: 3px;
       height: 18px;
-    }}
+    }
 
-    .bar {{
+    .bar {
       width: 3px;
       height: 100%;
       background: var(--accent);
       border-radius: 2px;
       animation: wave 1.2s ease-in-out infinite;
-    }}
+    }
 
-    .bar:nth-child(2) {{ animation-delay: 0.2s; height: 60%; }}
-    .bar:nth-child(3) {{ animation-delay: 0.4s; height: 90%; }}
-    .bar:nth-child(4) {{ animation-delay: 0.1s; height: 40%; }}
+    .bar:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+    .bar:nth-child(3) { animation-delay: 0.4s; height: 90%; }
+    .bar:nth-child(4) { animation-delay: 0.1s; height: 40%; }
 
-    @keyframes wave {{
-      0%, 100% {{ transform: scaleY(0.4); }}
-      50% {{ transform: scaleY(1); }}
-    }}
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
 
-    .btn-replay {{
+    .btn-replay {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--card-border);
       color: white;
@@ -686,13 +686,13 @@ async def serve_demo_tablet():
       align-items: center;
       gap: 6px;
       transition: 0.2s;
-    }}
+    }
 
-    .btn-replay:hover {{
+    .btn-replay:hover {
       background: rgba(255, 255, 255, 0.15);
-    }}
+    }
 
-    audio {{ display: none; }}
+    audio { display: none; }
   </style>
 </head>
 <body>
@@ -706,7 +706,7 @@ async def serve_demo_tablet():
       </div>
     </div>
     <div class="header-actions">
-      {live_badge_html}
+      <!-- LIVE_PHONE_BADGE -->
       <button class="btn-sound-gate" id="soundToggleBtn" onclick="toggleAudioPermission()">
         <span>🔊 Enable Sound</span>
       </button>
@@ -878,92 +878,92 @@ async def serve_demo_tablet():
     function toggleAudioPermission() {
       const audioEl = document.getElementById('audioElement');
       const soundBtn = document.getElementById('soundToggleBtn');
-      audioEl.play().then(() => {{
+      audioEl.play().then(() => {
         audioEl.pause();
         audioUnlocked = true;
         soundBtn.classList.add('active');
         soundBtn.innerHTML = '<span>🔊 Sound Active</span>';
-      }}).catch(() => {{
+      }).catch(() => {
         audioUnlocked = true;
         soundBtn.classList.add('active');
         soundBtn.innerHTML = '<span>🔊 Sound Active</span>';
-      }});
+      });
     }
 
     // Auto unlock on first user interaction anywhere
-    window.addEventListener('click', () => {{
+    window.addEventListener('click', () => {
       if (!audioUnlocked) toggleAudioPermission();
-    }}, {{ once: true }});
+    }, { once: true });
 
     // Clock
-    function updateClock() {{
+    function updateClock() {
       const now = new Date();
-      document.getElementById('clockTime').textContent = now.toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit' }});
-      document.getElementById('clockDate').textContent = now.toLocaleDateString([], {{ weekday: 'long', month: 'long', day: 'numeric' }});
-    }}
+      document.getElementById('clockTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('clockDate').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    }
     setInterval(updateClock, 1000);
     updateClock();
 
-    function onContactChange() {{
+    function onContactChange() {
       const val = document.getElementById('contactSelect').value;
       const customGroup = document.getElementById('customContactGroup');
-      if (val.startsWith('custom')) {{
+      if (val.startsWith('custom')) {
         customGroup.style.display = 'flex';
-      }} else {{
+      } else {
         customGroup.style.display = 'none';
-      }}
-    }}
+      }
+    }
 
-    function setScenario(name, relationship, message) {{
+    function setScenario(name, relationship, message) {
       document.getElementById('rawMessageInput').value = message;
       const select = document.getElementById('contactSelect');
-      for (let i = 0; i < select.options.length; i++) {{
-        if (select.options[i].value.includes(name)) {{
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.includes(name)) {
           select.selectedIndex = i;
           onContactChange();
           break;
-        }}
-      }}
-    }}
+        }
+      }
+    }
 
-    function onAnxietySlider(val) {{
+    function onAnxietySlider(val) {
       const pct = parseInt(val);
       document.getElementById('anxietyPct').textContent = pct + '%';
       const badge = document.getElementById('anxietyBadge');
       const hr = document.getElementById('hrDisplay');
       const rr = document.getElementById('rrDisplay');
 
-      if (pct >= 60) {{
+      if (pct >= 60) {
         badge.className = 'status-pill status-panic';
         badge.textContent = 'ELEVATED ANXIETY (VOICE GATED ON)';
-        hr.innerHTML = `${{Math.round(80 + (pct * 0.35))}} <span style="font-size:14px;color:var(--text-muted);">BPM</span>`;
-        rr.innerHTML = `${{Math.round(18 + (pct * 0.1))}} <span style="font-size:14px;color:var(--text-muted);">BrPM</span>`;
-      }} else {{
+        hr.innerHTML = `${Math.round(80 + (pct * 0.35))} <span style="font-size:14px;color:var(--text-muted);">BPM</span>`;
+        rr.innerHTML = `${Math.round(18 + (pct * 0.1))} <span style="font-size:14px;color:var(--text-muted);">BrPM</span>`;
+      } else {
         badge.className = 'status-pill status-calm';
         badge.textContent = 'CALM (TEXT ONLY)';
         hr.innerHTML = `72 <span style="font-size:14px;color:var(--text-muted);">BPM</span>`;
         rr.innerHTML = `15 <span style="font-size:14px;color:var(--text-muted);">BrPM</span>`;
-      }}
+      }
 
       // Sync with Presage telemetry endpoint
-      fetch('/telemetry/presage', {{
+      fetch('/telemetry/presage', {
         method: 'POST',
-        headers: {{ 'Content-Type': 'application/json' }},
-        body: JSON.stringify({{
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           anxiety_score: pct / 100.0,
           anxiety_detected: pct >= 60,
           heart_rate: parseFloat(hr.innerText),
           respiration_rate: parseFloat(rr.innerText)
-        }})
-      }}).catch(err => console.warn('Telemetry sync error:', err));
-    }}
+        })
+      }).catch(err => console.warn('Telemetry sync error:', err));
+    }
 
-    function setAnxiety(val) {{
+    function setAnxiety(val) {
       document.getElementById('anxietySlider').value = val;
       onAnxietySlider(val);
-    }}
+    }
 
-    async function sendSimulatedMessage() {{
+    async function sendSimulatedMessage() {
       const sendBtn = document.getElementById('sendBtn');
       const contactVal = document.getElementById('contactSelect').value;
       const rawMessage = document.getElementById('rawMessageInput').value.trim();
@@ -973,16 +973,16 @@ async def serve_demo_tablet():
       let relationship = "Grandson";
       let avatar = "👴";
 
-      if (contactVal.startsWith('custom')) {{
+      if (contactVal.startsWith('custom')) {
         senderName = document.getElementById('customName').value.trim() || "Family Member";
         relationship = document.getElementById('customRelation').value.trim() || "Family";
         avatar = "💬";
-      }} else {{
+      } else {
         const parts = contactVal.split('|');
         senderName = parts[0];
         relationship = parts[1];
         avatar = parts[2] || "💬";
-      }}
+      }
 
       const anxietyScore = parseInt(document.getElementById('anxietySlider').value) / 100.0;
       const anxietyDetected = anxietyScore >= 0.60;
@@ -990,49 +990,49 @@ async def serve_demo_tablet():
       sendBtn.disabled = true;
       sendBtn.innerHTML = '<span>Anchor Grounding...</span> <div class="pulse-dot"></div>';
 
-      try {{
-        const response = await fetch('/webhook/imessage', {{
+      try {
+        const response = await fetch('/webhook/imessage', {
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             sender_name: senderName,
             relationship: relationship,
             raw_message: rawMessage,
             anxiety_detected: anxietyDetected,
             anxiety_score: anxietyScore
-          }})
-        }});
+          })
+        });
 
         const data = await response.json();
-        if (data.event_id) {{
+        if (data.event_id) {
           lastEventId = data.event_id;
-        }}
+        }
         updateBedsideDisplay(data, avatar);
-      }} catch (err) {{
+      } catch (err) {
         alert("Failed to communicate with Anchor server: " + err);
-      }} finally {{
+      } finally {
         sendBtn.disabled = false;
         sendBtn.innerHTML = '<span>Send Incoming iMessage</span> <span>➔</span>';
-      }}
-    }}
+      }
+    }
 
-    function updateBedsideDisplay(data, avatar) {{
-      if (data.event_id) {{
+    function updateBedsideDisplay(data, avatar) {
+      if (data.event_id) {
         lastEventId = data.event_id;
-      }}
+      }
 
       document.getElementById('avatarDisplay').textContent = avatar || "💬";
       document.getElementById('senderNameDisplay').textContent = data.sender_name;
-      document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${{data.relationship}}` : "Family Member";
-      document.getElementById('groundedDisplay').textContent = `"${{data.grounded_message}}"`;
-      document.getElementById('rawInterceptedDisplay').textContent = `"${{data.raw_message}}"`;
+      document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
+      document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
+      document.getElementById('rawInterceptedDisplay').textContent = `"${data.raw_message}"`;
 
       const wave = document.getElementById('audioWave');
       const statusText = document.getElementById('audioStatusText');
       const replayBtn = document.getElementById('replayBtn');
       const audioEl = document.getElementById('audioElement');
 
-      if (data.audio_generated && data.audio_url) {{
+      if (data.audio_generated && data.audio_url) {
         const isNewAudio = (data.audio_url !== currentAudioUrl);
         currentAudioUrl = data.audio_url;
         wave.style.opacity = '1';
@@ -1041,56 +1041,57 @@ async def serve_demo_tablet():
         replayBtn.style.display = 'inline-flex';
 
         // Avoid interrupting or restarting if this exact audio stream is already playing
-        if (isNewAudio || audioEl.paused) {{
+        if (isNewAudio || audioEl.paused) {
           audioEl.src = data.audio_url;
           audioEl.currentTime = 0;
-          audioEl.play().catch(e => {{
+          audioEl.play().catch(e => {
             console.warn("Autoplay blocked by browser policy, click 'Play Voice' button:", e);
             statusText.textContent = "Voice ready (Click Play Voice to listen)";
-          }});
-        }}
+          });
+        }
 
-        audioEl.onended = () => {{
+        audioEl.onended = () => {
           wave.style.opacity = '0.3';
           statusText.textContent = "Voice intervention completed";
           statusText.style.color = 'var(--text-muted)';
-        }};
-      }} else {{
+        };
+      } else {
         currentAudioUrl = null;
         wave.style.opacity = '0.3';
         statusText.textContent = "Calm state • Message delivered visually";
         statusText.style.color = 'var(--calm)';
         replayBtn.style.display = 'none';
-      }}
-    }}
+      }
+    }
 
-    function replayAudio() {{
+    function replayAudio() {
       const audioEl = document.getElementById('audioElement');
-      if (currentAudioUrl) {{
+      if (currentAudioUrl) {
         audioEl.src = currentAudioUrl;
         audioEl.currentTime = 0;
         audioEl.play();
         document.getElementById('audioWave').style.opacity = '1';
         document.getElementById('audioStatusText').textContent = "Replaying voice intervention...";
-      }}
-    }}
+      }
+    }
 
     // Background poller for live external webhooks (e.g. from Photon or curl)
-    setInterval(async () => {{
-      try {{
+    setInterval(async () => {
+      try {
         const res = await fetch('/api/events/latest');
         const data = await res.json();
-        if (data.event && data.event.event_id && data.event.event_id !== lastEventId) {{
+        if (data.event && data.event.event_id && data.event.event_id !== lastEventId) {
           lastEventId = data.event.event_id;
           updateBedsideDisplay(data.event, "💬");
-        }}
-      }} catch (e) {{}}
-    }}, 2000);
+        }
+      } catch (e) {}
+    }, 2000);
   </script>
 </body>
 </html>
 """
-    return HTMLResponse(content=html_content)
+    rendered_html = html_template.replace("<!-- LIVE_PHONE_BADGE -->", live_badge_html)
+    return HTMLResponse(content=rendered_html)
 
 
 if __name__ == "__main__":
