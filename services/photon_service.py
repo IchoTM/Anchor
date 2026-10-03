@@ -60,19 +60,21 @@ def get_contact_directory() -> Dict[str, Dict[str, str]]:
     return contacts
 
 
-def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str]:
+def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
     """
-    Extracts (sender_name, relationship, raw_message) from various Photon / Spectrum
-    webhook payload structures.
+    Extracts (sender_name, relationship, raw_message, sender_handle) from various
+    Photon / Spectrum / Twilio / SMS webhook payload structures.
     """
     contacts = get_contact_directory()
 
     data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
 
-    # 1. Extract message body / raw text
+    # 1. Extract message body / raw text (supports Twilio 'Body', Photon 'text'/'body')
     raw_message = ""
     if "raw_message" in data and isinstance(data["raw_message"], str):
         raw_message = data["raw_message"]
+    elif "Body" in data and isinstance(data["Body"], str):
+        raw_message = data["Body"]
     elif "text" in data and isinstance(data["text"], str):
         raw_message = data["text"]
     elif "body" in data and isinstance(data["body"], str):
@@ -83,8 +85,8 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str]:
     elif isinstance(data.get("message"), str):
         raw_message = data["message"]
 
-    # 2. Extract sender info
-    sender_raw = data.get("sender") or data.get("from") or data.get("author") or {}
+    # 2. Extract sender info (supports Twilio 'From', Photon 'sender')
+    sender_raw = data.get("sender") or data.get("from") or data.get("From") or data.get("author") or {}
     metadata = data.get("metadata") or {}
 
     sender_name = ""
@@ -112,29 +114,63 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str]:
         sender_handle = str(data["identifier"])
     if not sender_handle and "handle" in data:
         sender_handle = str(data["handle"])
+    if not sender_handle and "From" in data:
+        sender_handle = str(data["From"])
 
     # 3. Resolve relationship from metadata or directory lookup
     if not relationship and isinstance(metadata, dict):
         relationship = metadata.get("relationship", "")
 
     if not relationship:
-        if sender_handle in contacts and "relationship" in contacts[sender_handle]:
+        if sender_handle in contacts:
             contact_info = contacts[sender_handle]
             relationship = contact_info.get("relationship", "")
-            if not sender_name:
+            if not sender_name or sender_name == sender_handle:
                 sender_name = contact_info.get("name", sender_handle)
-        elif sender_name in contacts and "relationship" in contacts[sender_name]:
+        elif sender_name in contacts:
             relationship = contacts[sender_name].get("relationship", "")
 
-    # Clean up defaults
-    if not sender_name:
-        sender_name = sender_handle or "A family member"
+    # Format phone number for readability if sender has no explicit name
+    if not sender_name or sender_name == sender_handle:
+        if sender_handle.startswith("+") and len(sender_handle) >= 10:
+            sender_name = f"Family Member ({sender_handle[-4:]})"
+            if not relationship:
+                relationship = "Family Member"
+        else:
+            sender_name = sender_handle or "A family member"
+
     if not relationship:
         relationship = "Family Member"
     if not raw_message:
         raw_message = "(No text content)"
 
-    return sender_name.strip(), relationship.strip(), raw_message.strip()
+    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip()
+
+
+def generate_caregiver_reply(
+    sender_name: str,
+    anxiety_detected: bool,
+    biometrics: Dict[str, Any],
+    audio_generated: bool,
+) -> str:
+    """
+    Constructs an empathetic, clinical status confirmation sent back to the family
+    member or caregiver who texted Rachel.
+    """
+    patient_name = os.getenv("PATIENT_NAME", "Rachel")
+    hr = biometrics.get("heart_rate", 74.0)
+
+    if anxiety_detected:
+        intervention = "A soothing voice reminder was played at her bedside." if audio_generated else "A high-visibility visual grounding card was displayed."
+        return (
+            f"Anchor Caregiver Update: We delivered and grounded your message for {patient_name}. "
+            f"Current vitals show elevated agitation (Heart Rate: {int(hr)} BPM). {intervention}"
+        )
+    else:
+        return (
+            f"Anchor Caregiver Update: Your message was grounded and delivered to {patient_name}'s bedside screen. "
+            f"Her vitals are currently calm and stable (Heart Rate: {int(hr)} BPM)."
+        )
 
 
 async def process_photon_message(
@@ -142,14 +178,15 @@ async def process_photon_message(
 ) -> Dict[str, Any]:
     """
     Full pipeline:
-    1. Parse incoming message and sender details.
-    2. Ground message via Gemini.
+    1. Parse incoming message and sender details (Photon, Spectrum, or Twilio SMS).
+    2. Ground message via Gemini into patient context.
     3. Evaluate patient anxiety state via Presage biometric emotional sensing.
     4. Gate ElevenLabs TTS: trigger voice generation only if anxiety is detected.
-    5. Cache event for the Bedside Tablet display.
+    5. Generate a caregiver auto-reply confirming message delivery and biometric state.
+    6. Cache event for the Bedside Tablet display.
     """
-    sender_name, relationship, raw_message = parse_photon_payload(payload)
-    print(f"[Anchor Pipeline] Parsed: Sender='{sender_name}', Relation='{relationship}', Message='{raw_message}'")
+    sender_name, relationship, raw_message, sender_handle = parse_photon_payload(payload)
+    print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Msg='{raw_message}'")
 
     # Evaluate Presage anxiety state
     anxiety_detected, anxiety_score, biometrics = evaluate_anxiety(payload)
@@ -190,13 +227,23 @@ async def process_photon_message(
     else:
         print("[Anchor Pipeline] Patient state is calm. Voice synthesis gated off.")
 
+    # Build Caregiver reassurance SMS confirmation
+    caregiver_reply = generate_caregiver_reply(
+        sender_name=sender_name,
+        anxiety_detected=anxiety_detected,
+        biometrics=biometrics,
+        audio_generated=audio_generated,
+    )
+
     result_event = {
         "event_id": str(uuid.uuid4()),
         "timestamp": time.time(),
         "sender_name": sender_name,
         "relationship": relationship,
+        "sender_handle": sender_handle,
         "raw_message": raw_message,
         "grounded_message": grounded_message,
+        "caregiver_reply": caregiver_reply,
         "anxiety_detected": anxiety_detected,
         "anxiety_score": anxiety_score,
         "biometrics": biometrics,

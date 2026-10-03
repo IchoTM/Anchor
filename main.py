@@ -46,6 +46,7 @@ class IMessageWebhookResponse(BaseModel):
     relationship: str
     raw_message: str
     grounded_message: str
+    caregiver_reply: Optional[str] = Field(None, description="Reassuring auto-reply sent back to family member")
     anxiety_detected: bool = Field(..., description="Whether elevated anxiety was detected by Presage")
     anxiety_score: float = Field(..., description="Presage anxiety score between 0.0 and 1.0")
     audio_generated: bool = Field(..., description="Indicates whether ElevenLabs speech audio was triggered")
@@ -67,37 +68,33 @@ class PresageTelemetryResponse(BaseModel):
     biometrics: Dict[str, Any]
 
 
-async def _process_incoming_webhook(request: Request, source: str) -> IMessageWebhookResponse:
+async def _process_incoming_webhook(request: Request, source: str) -> Any:
     """
     Parses and grounds an incoming message from iMessage, Photon, or SMS gateway.
     Supports JSON as well as form-encoded payloads (Twilio, Telnyx).
+    If incoming via Twilio SMS, returns TwiML XML to instantly reply to the sender's phone.
     """
     content_type = request.headers.get("content-type", "").lower()
+    is_form = "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type
     payload: Dict[str, Any] = {}
 
-    if "application/json" in content_type:
-        try:
-            payload = await request.json()
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
-    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+    if is_form:
         form_data = await request.form()
         payload = dict(form_data)
-        # Normalize standard Twilio / Telnyx fields
         if "Body" in payload and "text" not in payload:
             payload["text"] = payload["Body"]
         if "From" in payload and "sender" not in payload:
             payload["sender"] = payload["From"]
     else:
-        # Fallback attempt: try JSON first, then form
         try:
             payload = await request.json()
         except Exception:
             try:
                 form_data = await request.form()
                 payload = dict(form_data)
-            except Exception:
-                payload = {}
+                is_form = True
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail="Invalid request payload") from exc
 
     try:
         result = await process_photon_message(payload)
@@ -108,16 +105,26 @@ async def _process_incoming_webhook(request: Request, source: str) -> IMessageWe
         ) from exc
 
     print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
+
+    # If incoming from a live SMS gateway (e.g. Twilio), return TwiML XML so the sender gets an immediate text reply!
+    if is_form and ("From" in payload or "AccountSid" in payload):
+        caregiver_msg = result.get("caregiver_reply", "Anchor: Message delivered and grounded.")
+        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>{caregiver_msg}</Message>
+</Response>"""
+        return Response(content=twiml_response, media_type="application/xml")
+
     return IMessageWebhookResponse(**result)
 
 
-@app.post("/webhook/imessage", response_model=IMessageWebhookResponse)
+@app.post("/webhook/imessage")
 async def handle_imessage_webhook(request: Request):
     """Handles incoming iMessage or SMS webhooks with Presage anxiety-gated voice generation."""
     return await _process_incoming_webhook(request, source="iMessage")
 
 
-@app.post("/webhook/photon", response_model=IMessageWebhookResponse)
+@app.post("/webhook/photon")
 async def handle_photon_webhook(request: Request):
     """Dedicated endpoint for Photon / Spectrum framework webhooks."""
     return await _process_incoming_webhook(request, source="Photon")
@@ -571,10 +578,10 @@ async def serve_demo_tablet():
     }
 
     .grounding-hero {
-      margin: 30px 0;
+      margin: 24px 0;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .sender-banner {
@@ -608,13 +615,13 @@ async def serve_demo_tablet():
 
     .grounded-quote {
       font-family: 'Newsreader', Georgia, serif;
-      font-size: 28px;
+      font-size: 27px;
       line-height: 1.45;
       color: #ffffff;
       background: rgba(255, 255, 255, 0.03);
       border-left: 4px solid var(--accent);
       border-radius: 0 16px 16px 0;
-      padding: 24px;
+      padding: 22px;
       letter-spacing: -0.01em;
       transition: all 0.3s ease;
     }
@@ -626,9 +633,22 @@ async def serve_demo_tablet():
       font-size: 13px;
       color: var(--text-muted);
       background: rgba(0, 0, 0, 0.2);
-      padding: 10px 14px;
+      padding: 8px 14px;
       border-radius: 10px;
       border: 1px dashed var(--card-border);
+    }
+
+    .caregiver-receipt {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      line-height: 1.4;
     }
 
     .voice-player {
@@ -739,7 +759,7 @@ async def serve_demo_tablet():
           </select>
         </div>
 
-        <div class="field-group" id="customContactGroup" style="display:none; gap: 8px;">
+        <div class="field-group" id="customContactGroup" style="display:none; flex-direction:column; gap: 8px;">
           <label>Custom Sender Info</label>
           <input type="text" id="customName" placeholder="Name (e.g. Emily)">
           <input type="text" id="customRelation" placeholder="Relationship to Patient (e.g. Niece)">
@@ -767,7 +787,7 @@ async def serve_demo_tablet():
       </div>
 
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Intercepts incoming text messages, normalizes metadata through Photon, and grounds cognitive disorientation via Gemini.
+        Intercepts incoming text messages, normalizes metadata through Photon/Twilio, and grounds cognitive disorientation via Gemini.
       </div>
     </div>
 
@@ -845,6 +865,14 @@ async def serve_demo_tablet():
         <div class="raw-intercepted">
           <span>Intercepted raw message:</span>
           <strong id="rawInterceptedDisplay">"I will be there in 10 mins!"</strong>
+        </div>
+
+        <div class="caregiver-receipt" id="caregiverReceiptBox">
+          <span>📲</span>
+          <div>
+            <strong>Caregiver Auto-Receipt Sent:</strong>
+            <span id="caregiverReceiptText">Anchor: Message delivered and grounded for Rachel. Vitals are calm.</span>
+          </div>
         </div>
       </div>
 
@@ -1026,6 +1054,12 @@ async def serve_demo_tablet():
       document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
       document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
       document.getElementById('rawInterceptedDisplay').textContent = `"${data.raw_message}"`;
+
+      // Update Caregiver auto-reply receipt
+      const receiptText = document.getElementById('caregiverReceiptText');
+      if (data.caregiver_reply) {
+        receiptText.textContent = data.caregiver_reply;
+      }
 
       const wave = document.getElementById('audioWave');
       const statusText = document.getElementById('audioStatusText');
