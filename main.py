@@ -187,26 +187,377 @@ async def get_audio_stream(audio_id: str):
     return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
+@app.get("/text", response_class=HTMLResponse)
+@app.get("/mobile", response_class=HTMLResponse)
+async def serve_mobile_caregiver():
+    """
+    Mobile iMessage interface for judges and caregivers to text Eleanor
+    directly from their phones by scanning the QR code.
+    """
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Messages • Grandma Eleanor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* iOS iMessage Header */
+    .imessage-header {
+      background: rgba(22, 22, 24, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.15);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-btn {
+      color: #007aff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+
+    .contact-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      margin-bottom: 4px;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .contact-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .service-tag {
+      font-size: 11px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Identity selector bar */
+    .identity-bar {
+      background: #1c1c1e;
+      padding: 8px 12px;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .identity-label {
+      font-size: 12px;
+      color: #8e8e93;
+      font-weight: 500;
+    }
+
+    .identity-chip {
+      background: #2c2c2e;
+      color: #e5e5ea;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .identity-chip.active {
+      background: #007aff;
+      color: #fff;
+      border-color: #007aff;
+    }
+
+    /* Message History Stream */
+    .chat-scroll {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bubble-row {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .imessage-bubble {
+      background: #007aff;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 18px 18px 4px 18px;
+      max-width: 80%;
+      font-size: 15px;
+      line-height: 1.35;
+      word-wrap: break-word;
+    }
+
+    .bubble-status {
+      font-size: 11px;
+      color: #8e8e93;
+      padding-right: 4px;
+    }
+
+    .grounded-preview-card {
+      align-self: flex-start;
+      background: #1c1c1e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-left: 3px solid #38bdf8;
+      border-radius: 4px 16px 16px 16px;
+      padding: 12px 14px;
+      max-width: 88%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .grounded-preview-card .tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .grounded-preview-card .text {
+      font-size: 13px;
+      color: #e5e5ea;
+      line-height: 1.35;
+    }
+
+    /* Scenario Quick Chips */
+    .scenarios-tray {
+      padding: 8px 12px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      background: #121214;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .preset-pill {
+      background: rgba(255, 255, 255, 0.08);
+      color: #007aff;
+      border: 1px solid rgba(0, 122, 255, 0.3);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    /* Bottom Input Bar */
+    .composer {
+      background: #161618;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-box {
+      flex: 1;
+      background: #2c2c2e;
+      border: 0.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 9px 14px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+    }
+
+    .btn-send-arrow {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #007aff;
+      color: white;
+      border: none;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .btn-send-arrow:disabled {
+      background: #3a3a3c;
+      color: #8e8e93;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="imessage-header">
+    <div class="contact-avatar">👵</div>
+    <div class="contact-name">Grandma Eleanor</div>
+    <div class="service-tag">iMessage • Anchor Active</div>
+  </div>
+
+  <div class="identity-bar">
+    <span class="identity-label">You are:</span>
+    <button class="identity-chip active" onclick="setSender('Alex', 'Grandson', this)">Alex (Grandson)</button>
+    <button class="identity-chip" onclick="setSender('Sarah', 'Daughter', this)">Sarah (Daughter)</button>
+    <button class="identity-chip" onclick="setSender('David', 'Son', this)">David (Son)</button>
+    <button class="identity-chip" onclick="setSender('Dr. Chen', 'Doctor', this)">Dr. Chen</button>
+  </div>
+
+  <div class="chat-scroll" id="chatStream">
+    <div style="text-align: center; color: #8e8e93; font-size: 11px; margin: 8px 0;">
+      Anchor is actively monitoring Eleanor's vitals & cognitive clarity.
+    </div>
+  </div>
+
+  <div class="scenarios-tray">
+    <button class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
+    <button class="preset-pill" onclick="fillScenario('Did you take your pills? Call me.')">💊 Pill Check</button>
+    <button class="preset-pill" onclick="fillScenario('I left your glasses on the nightstand.')">👓 Lost Item</button>
+    <button class="preset-pill" onclick="fillScenario('Appointment confirmed for 3:00 PM today.')">📅 Doctor</button>
+  </div>
+
+  <div class="composer">
+    <input type="text" id="messageInput" class="input-box" placeholder="iMessage" enterkeyhint="send" onkeydown="if(event.key==='Enter') sendMessage()">
+    <button class="btn-send-arrow" id="sendArrowBtn" onclick="sendMessage()">↑</button>
+  </div>
+
+  <script>
+    let currentSender = "Alex";
+    let currentRelationship = "Grandson";
+
+    function setSender(name, rel, btn) {
+      currentSender = name;
+      currentRelationship = rel;
+      document.querySelectorAll('.identity-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function fillScenario(text) {
+      const input = document.getElementById('messageInput');
+      input.value = text;
+      input.focus();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatStream = document.getElementById('chatStream');
+      const sendBtn = document.getElementById('sendArrowBtn');
+
+      // Append user bubble
+      const bubbleRow = document.createElement('div');
+      bubbleRow.className = 'bubble-row';
+      bubbleRow.innerHTML = `
+        <div class="imessage-bubble">${escapeHtml(text)}</div>
+        <div class="bubble-status" id="status-${Date.now()}">Sending...</div>
+      `;
+      chatStream.appendChild(bubbleRow);
+      chatStream.scrollTop = chatStream.scrollHeight;
+
+      input.value = '';
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/webhook/imessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_name: currentSender,
+            relationship: currentRelationship,
+            raw_message: text
+          })
+        });
+
+        const data = await res.json();
+        const statusEl = bubbleRow.querySelector('.bubble-status');
+        statusEl.textContent = 'Delivered';
+
+        // Add grounding receipt
+        const responseCard = document.createElement('div');
+        responseCard.className = 'grounded-preview-card';
+        const voiceBadge = data.audio_generated ? '🎙️ Spoken Aloud to Eleanor' : '👁️ Bedside Display Only';
+        responseCard.innerHTML = `
+          <div class="tag">Anchor • ${voiceBadge}</div>
+          <div class="text">"${escapeHtml(data.grounded_message)}"</div>
+        `;
+        chatStream.appendChild(responseCard);
+        chatStream.scrollTop = chatStream.scrollHeight;
+
+      } catch (err) {
+        const statusEl = bubbleRow.querySelector('.bubble-status');
+        statusEl.textContent = 'Failed to deliver';
+        statusEl.style.color = '#ff453a';
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(string) {
+      const div = document.createElement('div');
+      div.textContent = string;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html_content)
+
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/demo", response_class=HTMLResponse)
 async def serve_demo_tablet():
     """Serves the interactive Bedside Tablet Dementia Care Simulator."""
-    demo_phone_number = os.getenv("LIVE_DEMO_NUMBER", "")
-    live_badge_html = ""
-    if demo_phone_number:
-        live_badge_html = f"""
-        <div class="header-badge live-phone-badge">
-          <span>📱 Text Live:</span>
-          <strong>{demo_phone_number}</strong>
-        </div>
-        """
-
     html_template = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anchor • Dementia Care Bedside Station</title>
+  <title>Anchor • Eleanor's Bedside Care Station</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
@@ -283,28 +634,32 @@ async def serve_demo_tablet():
       flex-wrap: wrap;
     }
 
-    .header-badge {
+    .btn-qr-action {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      border: 1px solid var(--accent);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--card-border);
-      font-size: 13px;
+      box-shadow: 0 0 15px var(--accent-glow);
+      transition: all 0.2s;
     }
 
-    .live-phone-badge {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.35);
-      color: #7dd3fc;
+    .btn-qr-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 25px var(--accent-glow);
     }
 
     .btn-sound-gate {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 6px 14px;
+      padding: 8px 16px;
       border-radius: 999px;
       font-size: 13px;
       cursor: pointer;
@@ -590,6 +945,7 @@ async def serve_demo_tablet():
       padding: 6px 14px;
       font-size: 13px;
       font-weight: 600;
+      color: #7dd3fc;
     }
 
     .grounding-hero {
@@ -727,6 +1083,40 @@ async def serve_demo_tablet():
       background: rgba(255, 255, 255, 0.15);
     }
 
+    /* MODAL FOR QR CODE */
+    .qr-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      place-items: center;
+    }
+
+    .qr-modal-card {
+      background: #16202c;
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 380px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    .qr-img {
+      width: 220px;
+      height: 220px;
+      background: white;
+      padding: 12px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
     audio { display: none; }
   </style>
 </head>
@@ -737,17 +1127,19 @@ async def serve_demo_tablet():
       <div class="brand-icon">⚓</div>
       <div class="brand-title">
         <h1>Anchor • Dementia Care Assistant</h1>
-        <p>Real-Time Cognitive Grounding & Biometric Voice Intervention</p>
+        <p>Grounding Disorientation for Eleanor • Presage & Gemini</p>
       </div>
     </div>
     <div class="header-actions">
-      <!-- LIVE_PHONE_BADGE -->
+      <button class="btn-qr-action" onclick="openQrModal()">
+        <span>📱 Text Eleanor (QR Code)</span>
+      </button>
       <button class="btn-sound-gate" id="soundToggleBtn" onclick="toggleAudioPermission()">
         <span>🔊 Enable Sound</span>
       </button>
-      <div class="header-badge">
+      <div class="header-badge" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 14px; border-radius:999px; border:1px solid var(--card-border); font-size:13px;">
         <div class="pulse-dot"></div>
-        <span id="gateway-status">Spectrum & Presage Gateway Active</span>
+        <span id="gateway-status">Active Gateway</span>
       </div>
     </div>
   </header>
@@ -777,7 +1169,7 @@ async def serve_demo_tablet():
         <div class="field-group" id="customContactGroup" style="display:none; flex-direction:column; gap: 8px;">
           <label>Custom Sender Info</label>
           <input type="text" id="customName" placeholder="Name (e.g. Emily)">
-          <input type="text" id="customRelation" placeholder="Relationship to Patient (e.g. Niece)">
+          <input type="text" id="customRelation" placeholder="Relationship to Eleanor (e.g. Niece)">
         </div>
 
         <div class="field-group">
@@ -802,14 +1194,14 @@ async def serve_demo_tablet():
       </div>
 
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Intercepts incoming text messages, normalizes metadata through Photon/Twilio, and grounds cognitive disorientation via Gemini.
+        Judges can also scan the QR code above to text Eleanor live from their personal phones.
       </div>
     </div>
 
     <!-- COLUMN 2: PRESAGE BIOMETRIC RADAR -->
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">Presage Biometrics</span>
+        <span class="panel-title">Eleanor's Biometrics</span>
         <span style="font-size: 18px;">🫀</span>
       </div>
 
@@ -850,7 +1242,7 @@ async def serve_demo_tablet():
       </div>
 
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Presage emotional sensing monitors patient agitation. ElevenLabs TTS voice synthesis triggers <strong>only</strong> when anxiety exceeds threshold.
+        Presage sensing monitors Eleanor's agitation. ElevenLabs TTS voice synthesis triggers <strong>only</strong> when anxiety exceeds threshold.
       </div>
     </div>
 
@@ -861,7 +1253,7 @@ async def serve_demo_tablet():
           <div class="time-large" id="clockTime">10:42 AM</div>
           <div class="date-large" id="clockDate">Tuesday, October 24</div>
         </div>
-        <div class="patient-tag">Bedside Monitor • Room 3B</div>
+        <div class="patient-tag">Eleanor's Station • Room 3B</div>
       </div>
 
       <div class="grounding-hero">
@@ -874,7 +1266,7 @@ async def serve_demo_tablet():
         </div>
 
         <div class="grounded-quote" id="groundedDisplay">
-          "Hi Grandma. Your grandson, Alex, just sent you a message. He wants you to know that he is coming over and will be at your house in 10 minutes."
+          "Hi Grandma Eleanor. Your grandson, Alex, just sent you a message. He wants you to know that he is coming over and will be at your house in 10 minutes."
         </div>
 
         <div class="raw-intercepted">
@@ -886,7 +1278,7 @@ async def serve_demo_tablet():
           <span>📲</span>
           <div>
             <strong>Caregiver Auto-Receipt Sent:</strong>
-            <span id="caregiverReceiptText">Anchor: Message delivered and grounded for Rachel. Vitals are calm.</span>
+            <span id="caregiverReceiptText">Anchor: Message delivered and grounded for Eleanor. Vitals are calm.</span>
           </div>
         </div>
       </div>
@@ -912,10 +1304,36 @@ async def serve_demo_tablet():
 
   </div>
 
+  <!-- QR CODE MODAL FOR JUDGES -->
+  <div class="qr-modal" id="qrModal" onclick="if(event.target===this) closeQrModal()">
+    <div class="qr-modal-card">
+      <h3 style="font-size: 18px; font-weight: 700;">Text Grandma Eleanor Live</h3>
+      <p style="font-size: 13px; color: var(--text-muted);">
+        Scan this QR code with your phone camera to open the Caregiver iMessage interface.
+      </p>
+      <img id="qrImage" class="qr-img" alt="QR Code to Text Eleanor">
+      <div style="font-size: 12px; color: var(--accent); font-family: monospace;" id="mobileUrlDisplay"></div>
+      <button class="btn-send" style="width: 100%;" onclick="closeQrModal()">Close</button>
+    </div>
+  </div>
+
   <script>
     let currentAudioUrl = null;
     let lastEventId = null;
     let audioUnlocked = false;
+
+    // QR Modal logic
+    function openQrModal() {
+      const mobileUrl = window.location.origin + '/text';
+      document.getElementById('mobileUrlDisplay').textContent = mobileUrl;
+      const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(mobileUrl);
+      document.getElementById('qrImage').src = qrApiUrl;
+      document.getElementById('qrModal').style.display = 'grid';
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').style.display = 'none';
+    }
 
     // Browser audio policy unlock
     function toggleAudioPermission() {
@@ -1085,7 +1503,7 @@ async def serve_demo_tablet():
         const isNewAudio = (data.audio_url !== currentAudioUrl);
         currentAudioUrl = data.audio_url;
         wave.style.opacity = '1';
-        statusText.textContent = "Rachel's voice intervention playing...";
+        statusText.textContent = "Anchor voice intervention playing for Eleanor...";
         statusText.style.color = 'var(--accent)';
         replayBtn.style.display = 'inline-flex';
 
@@ -1124,7 +1542,7 @@ async def serve_demo_tablet():
       }
     }
 
-    // Background poller for live external webhooks (e.g. from Photon or curl)
+    // Background poller for live external webhooks (e.g. from the mobile /text page or curl)
     setInterval(async () => {
       try {
         const res = await fetch('/api/events/latest');
@@ -1139,8 +1557,7 @@ async def serve_demo_tablet():
 </body>
 </html>
 """
-    rendered_html = html_template.replace("<!-- LIVE_PHONE_BADGE -->", live_badge_html)
-    return HTMLResponse(content=rendered_html)
+    return HTMLResponse(content=html_template)
 
 
 if __name__ == "__main__":
