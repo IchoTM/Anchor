@@ -11,7 +11,6 @@ load_dotenv(find_dotenv(), override=True)
 
 _client: ElevenLabs | None = None
 
-# Default to "Rachel" (21m00Tcm4TlvDq8ikWAM) - a calm, clear voice suited for grounding
 DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 
