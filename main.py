@@ -1,11 +1,11 @@
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from services.gemini_service import generate_grounding_message
 
-load_dotenv()
+load_dotenv(find_dotenv(), override=True)
 
 app = FastAPI(
     title="Anchor",
