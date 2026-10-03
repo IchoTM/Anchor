@@ -1,8 +1,9 @@
 import os
 import json
 import uuid
+import time
 import asyncio
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv, find_dotenv
 
 from services.gemini_service import generate_grounding_message
@@ -22,13 +23,24 @@ DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
     "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor"},
 }
 
-# Cache for generated audio files: audio_id -> raw mp3 bytes
+# In-memory storage for audio bytes and processed message events
 _audio_store: Dict[str, bytes] = {}
+_recent_events: List[Dict[str, Any]] = []
 
 
 def get_stored_audio(audio_id: str) -> Optional[bytes]:
     """Retrieve raw audio bytes by audio ID."""
     return _audio_store.get(audio_id)
+
+
+def get_recent_events(limit: int = 15) -> List[Dict[str, Any]]:
+    """Retrieve the most recent processed Anchor events."""
+    return list(reversed(_recent_events[-limit:]))
+
+
+def get_latest_event() -> Optional[Dict[str, Any]]:
+    """Retrieve the single most recent processed event."""
+    return _recent_events[-1] if _recent_events else None
 
 
 def get_contact_directory() -> Dict[str, Dict[str, str]]:
@@ -131,6 +143,7 @@ async def process_photon_message(
     2. Ground message via Gemini.
     3. Evaluate patient anxiety state via Presage biometric emotional sensing.
     4. Gate ElevenLabs TTS: trigger voice generation only if anxiety is detected.
+    5. Cache event for the Bedside Tablet display.
     """
     sender_name, relationship, raw_message = parse_photon_payload(payload)
     print(f"[Anchor Pipeline] Parsed: Sender='{sender_name}', Relation='{relationship}', Message='{raw_message}'")
@@ -174,14 +187,23 @@ async def process_photon_message(
     else:
         print("[Anchor Pipeline] Patient state is calm. Voice synthesis gated off.")
 
-    return {
+    result_event = {
+        "event_id": str(uuid.uuid4()),
+        "timestamp": time.time(),
         "sender_name": sender_name,
         "relationship": relationship,
         "raw_message": raw_message,
         "grounded_message": grounded_message,
         "anxiety_detected": anxiety_detected,
         "anxiety_score": anxiety_score,
+        "biometrics": biometrics,
         "audio_generated": audio_generated,
         "audio_id": audio_id,
         "audio_url": audio_url,
     }
+
+    _recent_events.append(result_event)
+    if len(_recent_events) > 50:
+        _recent_events.pop(0)
+
+    return result_event
