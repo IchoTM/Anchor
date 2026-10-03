@@ -45,7 +45,7 @@ def get_genai_client() -> genai.Client:
 
 
 def _find_available_model(client: genai.Client) -> str:
-    """Find a supported model from client.models.list()."""
+    """Find a supported 2.x flash model from client.models.list()."""
     candidate_names = []
     try:
         for m in client.models.list():
@@ -53,7 +53,12 @@ def _find_available_model(client: genai.Client) -> str:
             base_name = name.removeprefix("models/")
             candidate_names.append(base_name)
 
-        # Prioritize flash models, then pro models
+        for name in candidate_names:
+            if "2.5-flash" in name:
+                return name
+        for name in candidate_names:
+            if "2.0-flash" in name:
+                return name
         for name in candidate_names:
             if "flash" in name and "gemini" in name:
                 return name
@@ -65,7 +70,7 @@ def _find_available_model(client: genai.Client) -> str:
     except Exception as exc:
         print(f"[Anchor Warning] Could not list models: {exc}")
 
-    return "gemini-2.0-flash"
+    return "gemini-2.5-flash"
 
 
 async def generate_grounding_message(
@@ -81,22 +86,15 @@ async def generate_grounding_message(
         temperature=0.3,
     )
 
-    # Candidate models to try in order
     env_model = os.getenv("GEMINI_MODEL")
     candidates = []
     if _cached_working_model:
         candidates.append(_cached_working_model)
     if env_model and env_model not in candidates:
         candidates.append(env_model)
-    for default_candidate in [
-        "gemini-2.0-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash-exp",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro",
-    ]:
-        if default_candidate not in candidates:
-            candidates.append(default_candidate)
+    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp"]:
+        if model_name not in candidates:
+            candidates.append(model_name)
 
     last_error: Exception | None = None
 
@@ -122,7 +120,7 @@ async def generate_grounding_message(
             last_error = exc
             continue
 
-    # If all hardcoded candidates fail, dynamically discover from API
+    # If predefined 2.x models fail, dynamically query available models
     try:
         discovered_model = await asyncio.to_thread(_find_available_model, client)
         if discovered_model not in candidates:
