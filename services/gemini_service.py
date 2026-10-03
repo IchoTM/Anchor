@@ -60,6 +60,21 @@ def _clean_grounded_output(text: str) -> str:
 
 
 def _generate_sync(client: genai.Client, model: str, contents: str, config: types.GenerateContentConfig) -> str:
+    # 1. Check if client provides the new Interactions API
+    if hasattr(client, "interactions") and hasattr(client.interactions, "create"):
+        try:
+            interaction_resp = client.interactions.create(
+                model=model,
+                input=contents,
+            )
+            if hasattr(interaction_resp, "output") and interaction_resp.output:
+                return str(interaction_resp.output)
+            if hasattr(interaction_resp, "text") and interaction_resp.text:
+                return str(interaction_resp.text)
+        except Exception:
+            pass  # Fall through to generate_content
+
+    # 2. Standard generate_content call
     response = client.models.generate_content(
         model=model,
         contents=contents,
@@ -81,6 +96,15 @@ async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str
     return _clean_grounded_output(raw_text)
 
 
+def _build_fallback_grounding(sender_name: str, relationship: str, raw_message: str) -> str:
+    """Provides a safe, rule-based grounding message when the LLM service is unavailable."""
+    relation_text = f", your {relationship.lower()}," if relationship else ""
+    return (
+        f"Hi. {sender_name}{relation_text} sent you a message: "
+        f"\"{raw_message}\". Everything is alright."
+    )
+
+
 async def generate_grounding_message(
     sender_name: str, relationship: str, raw_message: str
 ) -> str:
@@ -89,15 +113,25 @@ async def generate_grounding_message(
     client = get_genai_client()
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    preferred_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+
+    # Priority candidate list based on current API availability
+    candidate_pool = [
+        preferred_model,
+        "gemini-3.8-flash",
+        "models/gemini-3.8-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+
     candidates: list[str] = []
-    if _cached_working_model:
+    if _cached_working_model and _cached_working_model not in candidates:
         candidates.append(_cached_working_model)
-    if preferred_model not in candidates:
-        candidates.append(preferred_model)
-    for fallback in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
-        if fallback not in candidates:
-            candidates.append(fallback)
+
+    for cand in candidate_pool:
+        if cand not in candidates:
+            candidates.append(cand)
 
     last_error: Exception | None = None
 
@@ -114,7 +148,24 @@ async def generate_grounding_message(
             print(f"[Anchor Warning] Gemini model {model_name} failed: {exc}")
             continue
 
-    if last_error:
-        raise last_error
+    # Try listing available models directly from the client if hardcoded names failed
+    try:
+        print("[Anchor Gemini] Querying ModelService for available models...")
+        models_page = await asyncio.to_thread(client.models.list)
+        for m in models_page:
+            model_id = getattr(m, "name", None) or getattr(m, "id", None)
+            if model_id and ("gemini" in model_id.lower() or "flash" in model_id.lower()):
+                try:
+                    clean_id = model_id.replace("models/", "")
+                    print(f"[Anchor Gemini] Attempting discovered model {clean_id}...")
+                    text = await _call_gemini_single(client, clean_id, user_prompt)
+                    if text:
+                        _cached_working_model = clean_id
+                        return text
+                except Exception:
+                    continue
+    except Exception as list_exc:
+        print(f"[Anchor Warning] Could not list models: {list_exc}")
 
-    return ""
+    print("[Anchor Warning] All Gemini models exhausted. Using resilient fallback grounding message.")
+    return _build_fallback_grounding(sender_name, relationship, raw_message)
