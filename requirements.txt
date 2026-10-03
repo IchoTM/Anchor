@@ -4,3 +4,4 @@ pydantic
 python-dotenv
 google-genai
 elevenlabs
+python-multipart
