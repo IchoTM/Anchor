@@ -1,7 +1,10 @@
 import os
 import asyncio
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+load_dotenv()
 
 SYSTEM_INSTRUCTION = """You are Anchor, an empathetic and highly patient cognitive assistant for an elderly person experiencing dementia. Your job is to intercept incoming text messages from their family members and rewrite them to provide gentle, grounding context.
 
@@ -26,7 +29,8 @@ _client: genai.Client | None = None
 def get_genai_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = genai.Client()
+        api_key = os.getenv("GEMINI_API_KEY")
+        _client = genai.Client(api_key=api_key)
     return _client
 
 
@@ -36,15 +40,6 @@ async def generate_grounding_message(
     client = get_genai_client()
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
-
-    if hasattr(client, "interactions"):
-        combined_input = f"{SYSTEM_INSTRUCTION}\n\nInput: {user_prompt}"
-        interaction = await asyncio.to_thread(
-            client.interactions.create,
-            model=model,
-            input=combined_input,
-        )
-        return interaction.output_text or ""
 
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
