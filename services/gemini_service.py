@@ -1,4 +1,5 @@
 import os
+import re
 import asyncio
 from dotenv import load_dotenv, find_dotenv
 from google import genai
@@ -15,6 +16,7 @@ Your goals:
 2. Rephrase the message in a calm, clear, and warm tone.
 3. Keep it brief. Do not overwhelm them with words.
 4. Do NOT sound like an AI. Do not say "I am an AI assistant." Speak in the third person as a gentle narrator, or format it as a clear notification.
+5. Provide ONLY the rephrased notification message. Do NOT repeat or echo "Input:" or "Output:" headers.
 
 EXAMPLES:
 Input: Sender: "Alex" | Relationship: "Grandson" | Message: "I'll be there in 10 mins!"
@@ -40,6 +42,25 @@ def get_genai_client() -> genai.Client:
     return _client
 
 
+def _clean_grounded_output(text: str) -> str:
+    """Strips any echoed prompt headers (Input:/Output:) from the generated text."""
+    cleaned = text.strip()
+    # If the response echoes the example format (e.g. Input: ... \nOutput: ...)
+    if "Output:" in cleaned:
+        cleaned = cleaned.split("Output:")[-1].strip()
+    elif "output:" in cleaned.lower():
+        pattern = re.compile(r"output\s*:\s*", re.IGNORECASE)
+        parts = pattern.split(cleaned)
+        if len(parts) > 1:
+            cleaned = parts[-1].strip()
+
+    # Remove enclosing quotes if the model wrapped the response in quotes
+    if (cleaned.startswith('"') and cleaned.endswith('"')) or (cleaned.startswith("'") and cleaned.endswith("'")):
+        cleaned = cleaned[1:-1].strip()
+
+    return cleaned
+
+
 def _generate_sync(client: genai.Client, model: str, contents: str, config: types.GenerateContentConfig) -> str:
     response = client.models.generate_content(
         model=model,
@@ -50,7 +71,7 @@ def _generate_sync(client: genai.Client, model: str, contents: str, config: type
 
 
 async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str) -> str:
-    full_prompt = f"{SYSTEM_INSTRUCTION}\n\nInput: {user_prompt}"
+    full_prompt = f"{SYSTEM_INSTRUCTION}\n\nTask: Ground the following incoming message for the patient:\n{user_prompt}\nProvide only the grounding response message without headers:"
 
     # Try Interactions API first if supported
     if hasattr(client, "interactions"):
@@ -61,10 +82,10 @@ async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str
                     model=model,
                     input=full_prompt,
                 ),
-                timeout=10.0,
+                timeout=7.0,
             )
             if interaction and getattr(interaction, "output_text", None):
-                return interaction.output_text
+                return _clean_grounded_output(interaction.output_text)
         except Exception as exc:
             print(f"[Anchor Info] Interactions API call on {model} skipped ({exc}), trying generate_content...")
 
@@ -74,10 +95,11 @@ async def _call_gemini_single(client: genai.Client, model: str, user_prompt: str
         temperature=0.3,
     )
 
-    return await asyncio.wait_for(
+    raw_text = await asyncio.wait_for(
         asyncio.to_thread(_generate_sync, client, model, user_prompt, config),
-        timeout=10.0,
+        timeout=7.0,
     )
+    return _clean_grounded_output(raw_text)
 
 
 async def generate_grounding_message(
@@ -88,13 +110,13 @@ async def generate_grounding_message(
     client = get_genai_client()
     user_prompt = f'Sender: "{sender_name}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
-    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     candidates = []
     if _cached_working_model:
         candidates.append(_cached_working_model)
     if preferred_model not in candidates:
         candidates.append(preferred_model)
-    for fallback in ["gemini-3.8-flash", "gemini-3.5-flash-lite"]:
+    for fallback in ["gemini-3.5-flash-lite", "gemini-3.8-flash"]:
         if fallback not in candidates:
             candidates.append(fallback)
 
