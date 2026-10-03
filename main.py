@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from services.gemini_service import generate_grounding_message
+from services.elevenlabs_service import generate_speech_audio
 
 load_dotenv(find_dotenv(), override=True)
 
@@ -25,6 +26,7 @@ class IMessageWebhookResponse(BaseModel):
     relationship: str
     raw_message: str
     grounded_message: str
+    audio_generated: bool = Field(..., description="Success status indicating whether speech audio was generated")
 
 
 @app.post("/webhook/imessage", response_model=IMessageWebhookResponse)
@@ -43,11 +45,21 @@ async def handle_imessage_webhook(payload: IMessageWebhookRequest):
 
     print(f"[Anchor Grounded Message]: {grounded_message}")
 
+    audio_generated = False
+    try:
+        audio_bytes = await generate_speech_audio(grounded_message)
+        if audio_bytes and len(audio_bytes) > 0:
+            audio_generated = True
+            print(f"[Anchor TTS]: Successfully generated {len(audio_bytes)} bytes of speech audio.")
+    except Exception as exc:
+        print(f"[Anchor Warning] Failed to generate speech audio: {exc}")
+
     return IMessageWebhookResponse(
         sender_name=payload.sender_name,
         relationship=payload.relationship,
         raw_message=payload.raw_message,
         grounded_message=grounded_message,
+        audio_generated=audio_generated,
     )
 
 
