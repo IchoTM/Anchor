@@ -1,11 +1,13 @@
 import os
 import json
+import uuid
 import asyncio
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 from dotenv import load_dotenv, find_dotenv
 
 from services.gemini_service import generate_grounding_message
 from services.elevenlabs_service import generate_speech_audio
+from services.presage_service import evaluate_anxiety
 
 load_dotenv(find_dotenv(), override=True)
 
@@ -19,6 +21,14 @@ DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
     "Grandpa": {"name": "Grandpa", "relationship": "Husband"},
     "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor"},
 }
+
+# Cache for generated audio files: audio_id -> raw mp3 bytes
+_audio_store: Dict[str, bytes] = {}
+
+
+def get_stored_audio(audio_id: str) -> Optional[bytes]:
+    """Retrieve raw audio bytes by audio ID."""
+    return _audio_store.get(audio_id)
 
 
 def get_contact_directory() -> Dict[str, Dict[str, str]]:
@@ -113,14 +123,24 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str]:
 
 
 async def process_photon_message(
-    payload: Dict[str, Any], generate_audio: bool = True
+    payload: Dict[str, Any], force_audio: Optional[bool] = None
 ) -> Dict[str, Any]:
     """
-    Full pipeline: Parse incoming Photon message, ground via Gemini,
-    and generate ElevenLabs speech audio with strict timeouts.
+    Full pipeline:
+    1. Parse incoming message and sender details.
+    2. Ground message via Gemini.
+    3. Evaluate patient anxiety state via Presage biometric emotional sensing.
+    4. Gate ElevenLabs TTS: trigger voice generation only if anxiety is detected.
     """
     sender_name, relationship, raw_message = parse_photon_payload(payload)
     print(f"[Anchor Pipeline] Parsed: Sender='{sender_name}', Relation='{relationship}', Message='{raw_message}'")
+
+    # Evaluate Presage anxiety state
+    anxiety_detected, anxiety_score, biometrics = evaluate_anxiety(payload)
+    print(f"[Anchor Presage] Anxiety Detected: {anxiety_detected} (Score: {anxiety_score:.2f})")
+
+    # Determine whether audio should be generated (force override or anxiety-gated)
+    should_generate_audio = anxiety_detected if force_audio is None else force_audio
 
     print("[Anchor Pipeline] Calling Gemini for grounding...")
     grounded_message = await generate_grounding_message(
@@ -131,25 +151,37 @@ async def process_photon_message(
     print(f"[Anchor Pipeline] Grounded text: '{grounded_message}'")
 
     audio_generated = False
-    if generate_audio:
+    audio_id = None
+    audio_url = None
+
+    if should_generate_audio:
         try:
-            print("[Anchor Pipeline] Calling ElevenLabs for TTS...")
+            print("[Anchor Pipeline] Anxiety detected! Triggering ElevenLabs voice intervention...")
             audio_bytes = await asyncio.wait_for(
                 generate_speech_audio(grounded_message),
                 timeout=7.0,
             )
             if audio_bytes and len(audio_bytes) > 0:
                 audio_generated = True
-                print(f"[Anchor TTS]: Generated {len(audio_bytes)} bytes of speech audio.")
+                audio_id = str(uuid.uuid4())
+                _audio_store[audio_id] = audio_bytes
+                audio_url = f"/audio/{audio_id}"
+                print(f"[Anchor TTS]: Generated {len(audio_bytes)} bytes of speech audio (ID: {audio_id}).")
         except asyncio.TimeoutError:
             print("[Anchor Warning] ElevenLabs TTS timed out after 7.0s, proceeding without audio.")
         except Exception as exc:
             print(f"[Anchor Warning] TTS generation failed: {exc}")
+    else:
+        print("[Anchor Pipeline] Patient state is calm. Voice synthesis gated off.")
 
     return {
         "sender_name": sender_name,
         "relationship": relationship,
         "raw_message": raw_message,
         "grounded_message": grounded_message,
+        "anxiety_detected": anxiety_detected,
+        "anxiety_score": anxiety_score,
         "audio_generated": audio_generated,
+        "audio_id": audio_id,
+        "audio_url": audio_url,
     }
