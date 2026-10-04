@@ -33,7 +33,6 @@ STATIC_DIR = BASE_DIR / "static"
 SOUNDS_DIR = STATIC_DIR / "sounds"
 PROCESSED_AVATAR_DIR = STATIC_DIR / "avatars" / "processed"
 
-# Ensure static directories exist and mount them for contact avatars, sounds & media
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 SOUNDS_DIR.mkdir(parents=True, exist_ok=True)
 PROCESSED_AVATAR_DIR.mkdir(parents=True, exist_ok=True)
@@ -88,6 +87,7 @@ class IMessageWebhookResponse(BaseModel):
     audio_url: Optional[str] = Field(None, description="Relative URL to stream the audio MP3")
     chime_url: Optional[str] = Field(None, description="Audio chime notification for bedside station")
     sender_photo_url: Optional[str] = Field(None, description="URL or static path to contact avatar photo")
+    is_verified_contact: bool = Field(False, description="Whether sender is in authorized contact directory")
     is_malicious: bool = Field(False, description="Whether message was flagged as malicious or predatory scam")
     malicious_reason: Optional[str] = Field(None, description="Reason message was flagged as malicious")
     blocked_from_patient: bool = Field(False, description="Whether message was blocked from Eleanor's bedside station")
@@ -123,40 +123,6 @@ def _detect_ngrok_tunnel_url() -> Optional[str]:
     except Exception:
         pass
     return None
-
-
-def _is_known_family_or_contact(sender_name: str, relationship: str) -> bool:
-    """Determines whether a message originates from a recognized contact rather than a stranger."""
-    name_clean = (sender_name or "").strip()
-    rel_clean = (relationship or "").strip().lower()
-
-    if not name_clean and not rel_clean:
-        return False
-
-    is_phone_or_raw = (
-        name_clean.startswith("+")
-        or name_clean.lower().startswith("phone")
-        or name_clean.lower().startswith("unknown")
-    )
-    is_generic_rel = rel_clean in {"unknown", "stranger", "family or friend", ""}
-
-    if not is_phone_or_raw and len(name_clean) > 1:
-        return True
-
-    if not is_generic_rel:
-        return True
-
-    return False
-
-
-def _generate_safety_hold_notice(sender_name: str, relationship: str) -> str:
-    """Generates an empathetic 'Caregiver Review' receipt for recognized contacts."""
-    contact_label = sender_name if sender_name and not sender_name.startswith("+") else "family"
-    return (
-        f"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, "
-        f"payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. "
-        f"If this is {contact_label}, please connect with Eleanor or her primary caregiver by phone."
-    )
 
 
 async def _parse_form_payload(request: Request) -> Dict[str, Any]:
@@ -204,18 +170,10 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
     is_blocked_or_malicious = bool(result.get("is_malicious") or result.get("blocked_from_patient"))
 
     if is_blocked_or_malicious:
-        sender_name = result.get("sender_name", "")
-        relationship = result.get("relationship", "")
-        is_known = _is_known_family_or_contact(sender_name, relationship)
+        is_verified = bool(result.get("is_verified_contact", False))
 
-        # Log full telemetry to out-of-band caregiver alerts portal
+        # Log full telemetry to in-memory caregiver alerts queue for the web dashboard
         caregiver_alert_item = dict(result)
-        caregiver_alert_item["is_known_contact"] = is_known
-        caregiver_alert_item["caregiver_security_warning"] = (
-            result.get("malicious_reason")
-            or result.get("caregiver_reply")
-            or "Suspicious request held from Eleanor."
-        )
         _caregiver_alerts.append(caregiver_alert_item)
 
         # Protect Eleanor's Bedside Station from any disturbance
@@ -225,23 +183,18 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
         result["audio_url"] = None
         result["chime_url"] = None
 
-        # SECURITY: Strip internal AI reasoning from the in-band sender response
-        # so attackers cannot probe keyword rules or bypass triggers.
+        # Strip internal AI reasoning from the in-band sender response
         result["malicious_reason"] = None
 
-        # Dual-Tier Feedback Policy:
-        # Tier 1 (Unknown Sender): Silent Blackhole (zero reply, prevents reconnaissance).
-        # Tier 2 (Known Family Contact): Empathetic "Held in Caregiver Review" notice.
-        if is_known:
-            result["caregiver_reply"] = _generate_safety_hold_notice(sender_name, relationship)
-        else:
+        # Enforce zero response for unverified senders
+        if not is_verified:
             result["caregiver_reply"] = None
     else:
         result.setdefault("chime_url", "/static/sounds/chime.wav")
 
     print(f"[Anchor Grounded Message from {source}]: {result.get('grounded_message', '(blocked/held)')}")
 
-    # If incoming via external Twilio SMS
+    # Twilio SMS XML webhook format
     if is_form and ("From" in payload or "AccountSid" in payload):
         caregiver_reply_text = result.get("caregiver_reply")
         if not caregiver_reply_text:

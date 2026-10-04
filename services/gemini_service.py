@@ -30,11 +30,15 @@ Flag as MALICIOUS (is_malicious = true) ONLY if the message involves:
 Flag as SAFE (is_malicious = false) for:
 - Legitimate family conversations, check-ins, affection, visits, schedule updates, medication reminders, or friendly notes.
 - Family members letting Eleanor know they got a new phone or a new phone number (e.g., "Hey Ma, it's Jenna, I got a new phone...", "Hi Grandma, it's Tommy from my new number"). AS LONG AS they do NOT ask for money, cards, codes, or urgent payments, this is completely SAFE. Do NOT flag loving family updates as malicious!
+- Friendly greetings, warm check-ins, or daily updates even if the sender's phone number is unverified or new, provided there is NO financial demand, threat, or extortion.
 
 EXAMPLES OF EVALUATION:
 - "Hey Ma, It's Jenna, I got a new phone and they gave me a new phone number for some reason. I love you" -> SAFE (is_malicious = false).
 - "Hi Grandma, it's Tommy. I got a new phone! Coming by to see you Sunday." -> SAFE (is_malicious = false).
 - "Hi Mum, I got a new phone. I lost my wallet and need you to wire $400 right now for rent" -> MALICIOUS (is_malicious = true).
+- "URGENT: This is Chase Bank fraud department. Your account is locked. Wire $2000 to verify" -> MALICIOUS (is_malicious = true).
+- "Grandma, I'm in jail and need bail money, please don't tell mom" -> MALICIOUS (is_malicious = true).
+- "Thinking of you today Grandma, hope you had a good lunch!" -> SAFE (is_malicious = false).
 
 2. PATIENT GROUNDING (Only if safe):
 If the message is safe, rewrite it in a calm, gentle, patient-friendly tone for Eleanor:

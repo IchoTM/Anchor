@@ -1,10 +1,13 @@
 import os
 import io
+import re
 import json
 import uuid
 import time
+import base64
 import hashlib
 import asyncio
+import urllib.parse
 import urllib.request
 from collections import deque
 from pathlib import Path
@@ -83,6 +86,43 @@ def get_contact_directory() -> Dict[str, Dict[str, str]]:
     return contacts
 
 
+def _normalize_identifier(identifier: str) -> str:
+    """Strips phone punctuation to allow matching formatted and unformatted phone numbers."""
+    if not identifier:
+        return ""
+    digits = re.sub(r"\D", "", identifier)
+    return digits if digits else identifier.strip().lower()
+
+
+def verify_contact(sender_handle: str, sender_name: str) -> Tuple[bool, Optional[Dict[str, str]]]:
+    """
+    Strictly verifies whether a sender's handle or phone number exists in the authorized contact directory.
+    Prevents unverified numbers from spoofing verified contact names.
+    """
+    contacts = get_contact_directory()
+    handle_norm = _normalize_identifier(sender_handle)
+    name_norm = (sender_name or "").strip().lower()
+
+    for key, info in contacts.items():
+        key_norm = _normalize_identifier(key)
+
+        # 1. Exact or normalized handle/phone match
+        if key == sender_handle or (handle_norm and handle_norm == key_norm):
+            return True, info
+
+        # 2. Check if contact definition has an explicit phone_number field matching handle
+        contact_phone = _normalize_identifier(info.get("phone_number", ""))
+        if handle_norm and contact_phone and handle_norm == contact_phone:
+            return True, info
+
+        # 3. Match name ONLY if sender_handle is empty or matches key directly
+        if name_norm and name_norm == key.lower():
+            if not sender_handle or sender_handle == key:
+                return True, info
+
+    return False, None
+
+
 def _load_image_bytes(photo_url: str) -> Optional[bytes]:
     """Loads raw image bytes from local static path, remote URL, or data URI."""
     if not photo_url:
@@ -102,7 +142,6 @@ def _load_image_bytes(photo_url: str) -> Optional[bytes]:
     # Handle data URI (base64)
     if photo_url.startswith("data:image/") and ";base64," in photo_url:
         try:
-            import base64
             _, b64_data = photo_url.split(";base64,", 1)
             return base64.b64decode(b64_data)
         except Exception as exc:
@@ -125,20 +164,11 @@ def _load_image_bytes(photo_url: str) -> Optional[bytes]:
 def crop_face_for_dementia_recognition(photo_url: str) -> str:
     """
     Applies clinical dementia-friendly facial detection and adaptive framing.
-    
-    1. Loads the source photo (local, remote, or base64 data URI).
-    2. Runs EXIF transpose to ensure correct phone orientation.
-    3. Runs Haar Cascade frontal face detection.
-    4. If a face is found:
-       - Calculates an expanded 1:1 framing box with ~35% - 40% margin around the head.
-       - Preserves hair, ears, neck, and upper shoulders (crucial visual anchors for dementia patients).
-       - Cuts out distracting background clutter (rooms, trees, other objects).
-    5. Caches the 512x512 cropped portrait into /static/avatars/processed/ and returns its URL.
+    Caches the 512x512 cropped portrait into /static/avatars/processed/ and returns its URL.
     """
     if not photo_url or not photo_url.strip():
         return photo_url
 
-    # Check if already processed
     if "/avatars/processed/" in photo_url:
         return photo_url
 
@@ -147,20 +177,17 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
         import cv2
         import numpy as np
     except ImportError:
-        # If OpenCV or Pillow is not installed in the runtime environment, return original
         return photo_url
 
     raw_bytes = _load_image_bytes(photo_url.strip())
     if not raw_bytes:
         return photo_url
 
-    # Compute a deterministic cache key from image bytes
     image_hash = hashlib.sha256(raw_bytes).hexdigest()[:16]
     target_filename = f"face_{image_hash}.jpg"
     target_path = PROCESSED_AVATARS_DIR / target_filename
     target_url = f"/static/avatars/processed/{target_filename}"
 
-    # Return cached version if already processed
     if target_path.exists():
         return target_url
 
@@ -169,7 +196,6 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
         pil_img = ImageOps.exif_transpose(pil_raw).convert("RGB")
         width, height = pil_img.size
 
-        # Convert to OpenCV grayscale image for cascade detection
         np_img = np.array(pil_img)
         gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
 
@@ -183,22 +209,15 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
         )
 
         if len(faces) > 0:
-            # Pick the most prominent/largest detected face
             faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
             fx, fy, fw, fh = faces[0]
 
-            # Calculate face center
             fcx = fx + (fw / 2.0)
             fcy = fy + (fh / 2.0)
 
-            # Sizing rule: Face should occupy roughly 45%-55% of the frame height,
-            # leaving 35%-40% margin for hair, ears, and upper shoulders.
             target_box_size = max(fw, fh) * 1.95
-
-            # Clamp box size to image dimensions
             target_box_size = min(target_box_size, min(width, height))
 
-            # Dementia framing bias: Keep top of hair intact by shifting crop center slightly down from top
             crop_cx = fcx
             crop_cy = fcy - (target_box_size * 0.06)
 
@@ -207,7 +226,6 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
             right = left + target_box_size
             bottom = top + target_box_size
 
-            # Adjust bounds to stay within image edges
             if left < 0:
                 right += abs(left)
                 left = 0
@@ -228,7 +246,6 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
 
             cropped = pil_img.crop((left, top, right, bottom))
         else:
-            # Fallback: Upper-third centered square crop (optimal for standard portraits)
             square_size = min(width, height)
             left = max(0, int((width - square_size) / 2))
             top = max(0, int((height - square_size) * 0.25))
@@ -236,7 +253,6 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
             bottom = top + square_size
             cropped = pil_img.crop((left, top, right, bottom))
 
-        # Standardize to 512x512 high-contrast image for dementia tablet viewing
         resample_filter = getattr(Image, "Resampling", Image).LANCZOS
         cropped = cropped.resize((512, 512), resample=resample_filter)
         cropped.save(target_path, format="JPEG", quality=92, optimize=True)
@@ -251,55 +267,37 @@ def resolve_contact_photo(
     sender_name: str,
     sender_handle: str,
     explicit_photo_url: Optional[str] = None,
+    is_verified: bool = False,
 ) -> Optional[str]:
-    """
-    Resolves the avatar image URL for a sender using explicit payload values,
-    the contact directory, or name pattern matching.
-    """
+    """Resolves avatar image URL for a sender using explicit payload values or known contacts."""
     resolved_url: Optional[str] = None
 
     if explicit_photo_url and explicit_photo_url.strip():
         resolved_url = explicit_photo_url.strip()
-    else:
+    elif is_verified:
         contacts = get_contact_directory()
-
-        # 1. Direct handle or name lookup in directory
         if sender_handle in contacts and contacts[sender_handle].get("photo_url"):
             resolved_url = contacts[sender_handle]["photo_url"]
         elif sender_name in contacts and contacts[sender_name].get("photo_url"):
             resolved_url = contacts[sender_name]["photo_url"]
         else:
-            # 2. Case-insensitive key lookup in directory
             sender_lower = (sender_name or "").lower().strip()
-            handle_lower = (sender_handle or "").lower().strip()
+            for pattern, path in AVATAR_NAME_PATTERNS.items():
+                if pattern in sender_lower:
+                    resolved_url = path
+                    break
 
-            for key, info in contacts.items():
-                if key.lower() in (sender_lower, handle_lower):
-                    if info.get("photo_url"):
-                        resolved_url = info["photo_url"]
-                        break
-
-            # 3. Pattern match against known presets (e.g. "chen" -> chen.jpg)
-            if not resolved_url:
-                for pattern, path in AVATAR_NAME_PATTERNS.items():
-                    if pattern in sender_lower or pattern in handle_lower:
-                        resolved_url = path
-                        break
-
-    # If an image URL was found, run adaptive smart face detection and crop
     if resolved_url:
         return crop_face_for_dementia_recognition(resolved_url)
 
     return None
 
 
-def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, Optional[str]]:
+def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, Optional[str], bool]:
     """
-    Extracts (sender_name, relationship, raw_message, sender_handle, sender_photo_url)
+    Extracts (sender_name, relationship, raw_message, sender_handle, sender_photo_url, is_verified_contact)
     from various Photon / Spectrum / Twilio / SMS webhook payload structures.
     """
-    contacts = get_contact_directory()
-
     data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
 
     # 1. Extract message body / raw text
@@ -357,20 +355,18 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
     if not sender_handle and "From" in data:
         sender_handle = str(data["From"])
 
-    # 3. Resolve relationship from metadata or directory lookup
-    if not relationship and isinstance(metadata, dict):
-        relationship = metadata.get("relationship", "")
+    # 3. Contact verification against directory
+    is_verified, contact_info = verify_contact(sender_handle, sender_name)
 
-    if not relationship:
-        if sender_handle in contacts:
-            contact_info = contacts[sender_handle]
-            relationship = contact_info.get("relationship", "")
-            if not sender_name or sender_name == sender_handle:
-                sender_name = contact_info.get("name", sender_handle)
-        elif sender_name in contacts:
-            relationship = contacts[sender_name].get("relationship", "")
+    if is_verified and contact_info:
+        relationship = relationship or contact_info.get("relationship", "")
+        if not sender_name or sender_name == sender_handle:
+            sender_name = contact_info.get("name", sender_handle)
+    else:
+        if not relationship and isinstance(metadata, dict):
+            relationship = metadata.get("relationship", "")
 
-    # Clean check: Is the sender name essentially a phone number?
+    # Clean identifier checks
     clean_sender = (sender_name or "").strip()
     is_phone_identifier = (
         clean_sender.startswith("+")
@@ -378,12 +374,11 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
         or (clean_sender.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace(".", "").isdigit())
     )
 
-    # Format phone numbers calmly without exposing raw numbers to a confused patient
-    if not sender_name or sender_name == sender_handle or is_phone_identifier:
-        # Preserve original handle for caregiver logging/verification
-        if not sender_handle:
-            sender_handle = clean_sender
+    if not sender_handle and clean_sender:
+        sender_handle = clean_sender
 
+    # Format unverified display names gently for Eleanor
+    if not sender_name or sender_name == sender_handle or is_phone_identifier:
         if not relationship or "unknown" in relationship.lower():
             sender_name = "Family or Friend"
             relationship = "Loved One"
@@ -395,14 +390,14 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
     if not raw_message:
         raw_message = "(No text content)"
 
-    # Resolve sender photo URL with adaptive face cropping
     sender_photo_url = resolve_contact_photo(
         sender_name=sender_name,
         sender_handle=sender_handle,
         explicit_photo_url=explicit_photo,
+        is_verified=is_verified,
     )
 
-    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip(), sender_photo_url
+    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip(), sender_photo_url, is_verified
 
 
 def generate_caregiver_reply(
@@ -431,29 +426,108 @@ def generate_caregiver_reply(
     )
 
 
+def generate_safety_hold_notice(sender_name: str, relationship: str) -> str:
+    """Generates an empathetic 'Caregiver Review' receipt for recognized family contacts."""
+    contact_label = sender_name if sender_name and not sender_name.startswith("+") else "family"
+    return (
+        f"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, "
+        f"payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. "
+        f"If this is {contact_label}, please connect with Eleanor or her primary caregiver by phone."
+    )
+
+
 def generate_malicious_caregiver_warning(
     sender_name: str,
     sender_handle: str,
     raw_message: str,
     malicious_reason: str,
+    is_verified_contact: bool,
 ) -> str:
-    """
-    Constructs a high-priority warning alert for caregivers containing:
-    1. The message contents
-    2. Who it is from (phone number if no contact info)
-    3. Exactly why it was flagged as malicious
-    """
+    """Constructs a high-priority warning alert for caregivers."""
     sender_identifier = sender_handle if sender_handle else sender_name
-    if not sender_identifier or sender_identifier == "Unknown Contact":
-        sender_identifier = "Unknown Phone Number"
+    contact_status = "Known/Verified Contact" if is_verified_contact else "UNVERIFIED / UNKNOWN SENDER"
+    action_note = (
+        "Zero response sent to sender. Held from Eleanor's bedside station."
+        if not is_verified_contact
+        else "Held in Caregiver Review. Eleanor's display was not disturbed."
+    )
 
     return (
-        f"🚨 ANCHOR SHIELD ALERT: Malicious message intercepted and blocked from Eleanor.\n"
-        f"• From: {sender_identifier}\n"
+        f"🚨 ANCHOR SECURITY ALERT: Malicious/Predatory message blocked!\n"
+        f"• From: {sender_identifier} ({contact_status})\n"
         f"• Message Content: \"{raw_message}\"\n"
-        f"• Flagged Reason: {malicious_reason}\n"
-        f"• Action Taken: Suppressed from Eleanor's bedside station. She was not alarmed."
+        f"• Reason Flagged: {malicious_reason}\n"
+        f"• Patient Action: {action_note}"
     )
+
+
+def _send_twilio_alert_sync(
+    account_sid: str, auth_token: str, from_number: str, to_number: str, body: str
+) -> bool:
+    """Dispatches SMS alert to primary caregiver via Twilio REST API."""
+    try:
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        data = urllib.parse.urlencode({"From": from_number, "To": to_number, "Body": body}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, method="POST")
+        auth_header = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
+        req.add_header("Authorization", f"Basic {auth_header}")
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            return resp.status in (200, 201)
+    except Exception as exc:
+        print(f"[Anchor Alert] Twilio SMS dispatch failed: {exc}")
+        return False
+
+
+def _send_webhook_alert_sync(webhook_url: str, payload: Dict[str, Any]) -> bool:
+    """Dispatches webhook alert to external caregiver notification endpoint."""
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            webhook_url,
+            data=data,
+            headers={"Content-Type": "application/json", "User-Agent": "Anchor-Security/1.0"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            return resp.status in (200, 201, 204)
+    except Exception as exc:
+        print(f"[Anchor Alert] Caregiver webhook alert failed: {exc}")
+        return False
+
+
+async def dispatch_caregiver_alert(alert_payload: Dict[str, Any]) -> None:
+    """
+    Actively dispatches an emergency notification to real caregivers via:
+    1. Twilio SMS if CAREGIVER_PHONE_NUMBER and Twilio credentials are configured.
+    2. HTTP Webhook if CAREGIVER_WEBHOOK_URL is configured.
+    3. Prominent log dispatch for monitoring systems.
+    """
+    warning_text = alert_payload.get("caregiver_security_warning", "")
+    print(f"\n=======================================================")
+    print(f"🚨 [ANCHOR CAREGIVER DISPATCH - URGENT ACTION REQUIRED]")
+    print(warning_text)
+    print(f"=======================================================\n")
+
+    # 1. Twilio SMS Outbound Dispatch
+    caregiver_phone = os.getenv("CAREGIVER_PHONE_NUMBER") or os.getenv("PRIMARY_CAREGIVER_PHONE")
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    twilio_from = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_FROM_NUMBER")
+
+    if caregiver_phone and twilio_sid and twilio_token and twilio_from:
+        print(f"[Anchor Alert] Dispatching outbound SMS to caregiver at {caregiver_phone}...")
+        sms_sent = await asyncio.to_thread(
+            _send_twilio_alert_sync, twilio_sid, twilio_token, twilio_from, caregiver_phone, warning_text
+        )
+        if sms_sent:
+            print(f"[Anchor Alert] Successfully delivered emergency SMS to caregiver {caregiver_phone}.")
+
+    # 2. Webhook Dispatch (Slack / Discord / Caregiver Portal)
+    caregiver_webhook = os.getenv("CAREGIVER_WEBHOOK_URL")
+    if caregiver_webhook:
+        print(f"[Anchor Alert] Dispatching webhook alert to caregiver channel...")
+        await asyncio.to_thread(_send_webhook_alert_sync, caregiver_webhook, alert_payload)
 
 
 async def process_photon_message(
@@ -461,19 +535,22 @@ async def process_photon_message(
 ) -> Dict[str, Any]:
     """
     Full pipeline:
-    1. Parse incoming message, sender details, and multimodal contact photo.
+    1. Parse incoming message, sender details, and contact directory verification status.
     2. Scan for malicious / scam behavior via Gemini & security heuristics.
     3. If malicious:
-       - BLOCK message from Eleanor's bedside tablet.
-       - SUPPRESS voice audio generation.
-       - Dispatch immediate warning alert to caregivers.
+       - If unverified/no contact: ZERO response sent back to sender.
+       - If verified family contact: Empathetic 'Caregiver Review' hold notice sent.
+       - In ALL malicious cases: Suppress bedside station & actively alert caregivers.
     4. If safe:
        - Ground message via Gemini for Eleanor.
        - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
-       - Post safe grounded card with contact photo to Eleanor's tablet queue in thread-safe order.
+       - Post safe grounded card to Eleanor's tablet queue.
     """
-    sender_name, relationship, raw_message, sender_handle, sender_photo_url = parse_photon_payload(payload)
-    print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Photo='{sender_photo_url}', Msg='{raw_message}'")
+    sender_name, relationship, raw_message, sender_handle, sender_photo_url, is_verified = parse_photon_payload(payload)
+    print(
+        f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', "
+        f"Handle='{sender_handle}', Verified={is_verified}, Msg='{raw_message}'"
+    )
 
     # Evaluate Presage anxiety state
     anxiety_detected, anxiety_score, biometrics = evaluate_anxiety(payload)
@@ -490,9 +567,9 @@ async def process_photon_message(
     is_malicious = bool(analysis.get("is_malicious", False))
     malicious_reason = str(analysis.get("malicious_reason", "")).strip()
 
-    # MALICIOUS MESSAGE INTERVENTION BRANCH
+    # MALICIOUS / RISKY MESSAGE BRANCH
     if is_malicious:
-        print(f"[Anchor SHIELD]: Intercepted malicious message! Reason: {malicious_reason}")
+        print(f"[Anchor SHIELD]: Intercepted risky/malicious message! Reason: {malicious_reason}")
         print("[Anchor SHIELD]: Suppressing patient tablet display & voice audio.")
 
         caregiver_warning = generate_malicious_caregiver_warning(
@@ -500,9 +577,13 @@ async def process_photon_message(
             sender_handle=sender_handle,
             raw_message=raw_message,
             malicious_reason=malicious_reason or "Suspicious predatory or extortion content detected.",
+            is_verified_contact=is_verified,
         )
 
-        # Do NOT append to _recent_events so Eleanor's bedside screen remains unaffected
+        # Policy: If unverified / no contact -> NO RESPONSE back to sender.
+        # If verified contact -> Safety hold notice.
+        sender_reply = generate_safety_hold_notice(sender_name, relationship) if is_verified else None
+
         result_event = {
             "event_id": str(uuid.uuid4()),
             "timestamp": time.time(),
@@ -510,9 +591,11 @@ async def process_photon_message(
             "relationship": relationship,
             "sender_handle": sender_handle,
             "sender_photo_url": sender_photo_url,
+            "is_verified_contact": is_verified,
             "raw_message": raw_message,
-            "grounded_message": "🛡️ Message shielded by Anchor Scam Defense.",
-            "caregiver_reply": caregiver_warning,
+            "grounded_message": "",
+            "caregiver_reply": sender_reply,
+            "caregiver_security_warning": caregiver_warning,
             "anxiety_detected": anxiety_detected,
             "anxiety_score": anxiety_score,
             "biometrics": biometrics,
@@ -523,9 +606,13 @@ async def process_photon_message(
             "malicious_reason": malicious_reason or "Predatory or emergency financial scam detected.",
             "blocked_from_patient": True,
         }
+
+        # Actively alert real caregivers immediately
+        await dispatch_caregiver_alert(result_event)
+
         return result_event
 
-    # SAFE MESSAGE BRANCH
+    # SAFE MESSAGE BRANCH (Genuine family members, visits, or benign greetings from new numbers)
     grounded_message = str(analysis.get("grounded_message", "")).strip()
     print(f"[Anchor Pipeline] Grounded text: '{grounded_message}'")
 
@@ -569,9 +656,11 @@ async def process_photon_message(
         "relationship": relationship,
         "sender_handle": sender_handle,
         "sender_photo_url": sender_photo_url,
+        "is_verified_contact": is_verified,
         "raw_message": raw_message,
         "grounded_message": grounded_message,
         "caregiver_reply": caregiver_reply,
+        "caregiver_security_warning": None,
         "anxiety_detected": anxiety_detected,
         "anxiety_score": anxiety_score,
         "biometrics": biometrics,

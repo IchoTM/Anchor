@@ -16,25 +16,33 @@
 3. The server queries the Gemini API with the message and a system prompt to "anchor" the patient.
 4. If the frontend (Presage) detects high anxiety, the server triggers ElevenLabs to generate an MP3 of the Gemini response.
 
-## Security Architecture: Dual-Tier "Safety Hold" Protocol
-To protect vulnerable patients from financial exploitation while avoiding the pitfalls of blunt blackholing or leaky error warnings:
+## Security Architecture: Cognitive Shield & Caregiver Dispatch
 
-1. **Patient Shielding (Bedside Zero-Disturbance):**
-   Any message flagged as predatory, financial, or high-pressure is immediately suppressed from Eleanor's bedside station. No chime rings, no text displays, and no speech audio plays.
+### 1. Zero-Disturbance Patient Bedside Shield
+Any message flagged as predatory, financial extortion, or high-pressure is immediately suppressed from Eleanor's bedside station. No chime rings, no card displays, and no speech audio plays.
 
-2. **Tier 1: Unverified / Stranger Numbers $\rightarrow$ Silent Blackhole:**
-   - Messages from unknown numbers that fail safety checks are silently dropped.
-   - **Zero In-Band Feedback:** No error message is returned (`caregiver_reply = None`). This stops bad actors from probing AI detection boundaries or learning that an automated filter exists.
+### 2. Dual-Tier Response Policy
+- **Risky Message + Unverified / No Contact:**
+  - **Zero Response to Sender:** `caregiver_reply = None`. Twilio/SMS sends `<Response></Response>` (empty). Bad actors receive silence and cannot probe AI filters or rules.
+  - **Bedside Display:** Blocked.
+  - **Active Caregiver Alert:** Dispatched immediately (SMS via Twilio, webhook, and dashboard).
+- **Risky Message + Verified Contact:**
+  - **Empathetic Safety Hold Receipt:** If a verified family contact sends a sensitive payment or urgent request (e.g. device stolen or account compromised):
+    *"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. If this is [Name], please connect with Eleanor or her primary caregiver by phone."*
+  - **Bedside Display:** Blocked.
+  - **Active Caregiver Alert:** Dispatched immediately.
 
-3. **Tier 2: Known Family Contacts $\rightarrow$ Empathetic "Caregiver Review" Hold:**
-   - If an authorized contact (e.g. Sarah or Alex) sends a message containing sensitive financial or urgent requests:
-   - Instead of an accusatory scam alert, Anchor replies with a neutral policy hold receipt:
-     *"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. If this is Sarah, please connect with Eleanor or her primary caregiver by phone."*
-   - **Solves False Positives:** Legitimate family members immediately understand why the text was held and are directed to call.
-   - **Neutralizes Compromised Devices:** An attacker who compromised Sarah's device learns that Eleanor cannot be reached via text, cannot bypass the lock without a live phone call, and gains no intel on AI filter rules.
+### 3. Family Members with New Numbers
+- If a family member texts from an unverified or new phone number with a warm, genuine update (e.g., *"Hi Grandma, it's Tommy! Got a new phone, coming by Sunday"*):
+  - The message contains NO extortion, wire requests, or panic prompts.
+  - Gemini evaluates it as `is_malicious = False`.
+  - Eleanor receives the calm grounded message on her tablet without false-positive blocks.
 
-4. **Out-of-Band Caregiver Telemetry:**
-   All flagged events are transmitted with full context to the caregiver dashboard (`/api/caregiver/alerts`) for real-time monitoring and intervention.
+### 4. Active Out-of-Band Caregiver Alerting
+When any malicious message is detected, `dispatch_caregiver_alert`:
+- Dispatches an emergency SMS alert to `CAREGIVER_PHONE_NUMBER` via Twilio.
+- Posts an alert to `CAREGIVER_WEBHOOK_URL` if configured.
+- Logs full alert telemetry to `/api/caregiver/alerts` for real-time monitoring.
 
 ## Rules for Aider
 - Write modular, asynchronous Python (`async def`).
