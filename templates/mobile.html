@@ -559,6 +559,7 @@
     let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
     let lastHandledAlertId = null;
+    let alertTrackerReady = false;
 
     function isFamilyOrCaregiver() {
       const rel = (currentRelationship || "").toLowerCase();
@@ -648,7 +649,19 @@
       document.getElementById('relationInput').value = rel;
     }
 
-    function saveIdentity() {
+    async function syncLatestAlertBaseline() {
+      try {
+        const res = await fetch('/api/caregiver/alerts/latest');
+        const data = await res.json();
+        if (data.alert && data.alert.event_id) {
+          lastHandledAlertId = data.alert.event_id;
+        }
+      } catch (e) {} finally {
+        alertTrackerReady = true;
+      }
+    }
+
+    async function saveIdentity() {
       const contact = document.getElementById('contactInfoInput').value.trim();
       const rel = document.getElementById('relationInput').value.trim();
 
@@ -663,13 +676,15 @@
       closeIdentityModal();
 
       if (changed) {
-        lastHandledAlertId = null;
+        // Baseline to whatever is currently on the server so old scam alerts aren't treated as new
+        await syncLatestAlertBaseline();
         resetChatStreamForCurrentPersona();
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       resetChatStreamForCurrentPersona();
+      await syncLatestAlertBaseline();
       openIdentityModal();
     });
 
@@ -815,7 +830,7 @@
 
     // Live Security Alert Poller for Family and Caregivers
     setInterval(async () => {
-      if (!isFamilyOrCaregiver()) return;
+      if (!isFamilyOrCaregiver() || !alertTrackerReady) return;
 
       try {
         const res = await fetch('/api/caregiver/alerts/latest');
