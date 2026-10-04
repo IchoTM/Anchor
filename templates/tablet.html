@@ -191,27 +191,27 @@
       position: relative;
     }
 
-    /* Ambient Dementia Orientation Clock */
+    /* Ambient Dementia Orientation Clock & Calm Station */
     .ambient-clock-view {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 28px;
+      gap: 22px;
       max-width: 960px;
       width: 100%;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    /* Dementia Guideline: Use Sentence/Title case without all-caps shouting; high-contrast pill */
+    /* Period of Day Dementia Pill */
     .period-of-day-pill {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 700;
       letter-spacing: 0.03em;
       color: #032b26;
       background: #5eead4;
       border: 3px solid #2dd4bf;
-      padding: 10px 36px;
+      padding: 9px 34px;
       border-radius: 999px;
       box-shadow: 0 4px 16px rgba(45, 212, 191, 0.25);
     }
@@ -234,6 +234,46 @@
       line-height: 1.35;
     }
 
+    /* Ambient Reassurance Banner for Disorientation Relief */
+    .ambient-reassurance-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(52, 211, 153, 0.3);
+      padding: 14px 28px;
+      border-radius: 999px;
+      margin-top: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .reassurance-pulse-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--calm-green);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.9);
+      animation: breathPulse 4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes breathPulse {
+      0%, 100% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.25); opacity: 1; }
+    }
+
+    .reassurance-text {
+      font-size: clamp(18px, 2.2vw, 22px);
+      font-weight: 600;
+      color: #e2e8f0;
+      letter-spacing: 0.01em;
+    }
+
+    .reassurance-text strong {
+      color: #a7f3d0;
+      font-weight: 700;
+    }
+
     .btn-recall-message {
       background: #1e293b;
       border: 2.5px solid #38bdf8;
@@ -247,7 +287,7 @@
       align-items: center;
       gap: 14px;
       transition: all 0.2s ease;
-      margin-top: 18px;
+      margin-top: 10px;
       box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
     }
 
@@ -721,11 +761,19 @@
   <!-- Viewport Container -->
   <main class="viewport-container">
 
-    <!-- Ambient Dementia Clock (Clean Orientation State) -->
+    <!-- Ambient Dementia Clock & Calm Station (Orientation State) -->
     <div class="ambient-clock-view" id="ambientClockView">
       <div class="period-of-day-pill" id="periodOfDayLabel">Morning</div>
       <div class="time-clinical" id="clockTime">--:--</div>
       <div class="date-clinical" id="clockDate">Loading date...</div>
+
+      <!-- Clinical Reassurance Cue to Anchor Patient Peace of Mind -->
+      <div class="ambient-reassurance-card">
+        <div class="reassurance-pulse-dot"></div>
+        <div class="reassurance-text">
+          Safe at Home in <strong>Room 3B</strong> • Eleanor, your family is thinking of you
+        </div>
+      </div>
 
       <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="showCurrentMessageCard()">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -837,12 +885,12 @@
 
     const serverPublicUrl = "{{ public_url }}";
 
-    // Period of day dementia orientation calculator
+    // Period of day dementia orientation calculator with peaceful descriptors
     function getPeriodOfDay(hour) {
-      if (hour >= 5 && hour < 12) return 'Morning';
-      if (hour >= 12 && hour < 17) return 'Afternoon';
-      if (hour >= 17 && hour < 21) return 'Evening';
-      return 'Night';
+      if (hour >= 5 && hour < 12) return 'Peaceful Morning';
+      if (hour >= 12 && hour < 17) return 'Quiet Afternoon';
+      if (hour >= 17 && hour < 21) return 'Relaxing Evening';
+      return 'Restful Night';
     }
 
     function updateClock() {
