@@ -64,7 +64,7 @@
       pointer-events: none;
     }
 
-    /* Clinical Device App Bar (Retained intact for dev/caregiver controls) */
+    /* Clinical Device App Bar */
     .device-appbar {
       display: flex;
       justify-content: space-between;
@@ -300,12 +300,28 @@
       pointer-events: none;
       transform: translateY(16px);
       transition: opacity 0.35s ease, transform 0.35s ease;
+      overflow: hidden;
+      cursor: pointer;
     }
 
     .message-stage-card.visible {
       opacity: 1;
       pointer-events: auto;
       transform: translateY(0);
+    }
+
+    /* Progress indicator bar at bottom of card */
+    .dwell-progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      width: 100%;
+      background: #38bdf8;
+      opacity: 0.65;
+      transform-origin: left;
+      transform: scaleX(1);
+      transition: transform linear;
     }
 
     .message-sender-header {
@@ -733,7 +749,7 @@
   </header>
 
   <!-- Viewport Container -->
-  <main class="viewport-container">
+  <main class="viewport-container" id="viewportContainer" onclick="handleViewportClick(event)">
 
     <!-- Ambient Dementia Clock & Calm Station (Orientation State) -->
     <div class="ambient-clock-view" id="ambientClockView">
@@ -754,6 +770,9 @@
 
     <!-- Elevated Incoming Grounded Message Card -->
     <article class="message-stage-card" id="messageStageCard" aria-live="polite">
+      <!-- Subtle visual countdown line for presentation pacing -->
+      <div class="dwell-progress-bar" id="dwellProgressBar"></div>
+
       <div class="message-sender-header">
         <div class="sender-profile">
           <div class="sender-avatar-wrapper">
@@ -792,11 +811,11 @@
         </div>
 
         <div class="card-actions">
-          <button class="btn-action-replay" id="btnReplayAudio" style="display: none;" onclick="replayAudio()">
+          <button class="btn-action-replay" id="btnReplayAudio" style="display: none;" onclick="event.stopPropagation(); replayAudio();">
             <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
             <span>Listen Again</span>
           </button>
-          <button class="btn-action-dismiss" id="btnActionDismiss" onclick="handleCardDismissOrNext()">
+          <button class="btn-action-dismiss" id="btnActionDismiss" onclick="event.stopPropagation(); handleCardDismissOrNext();">
             <span id="dismissBtnLabel">Done</span>
           </button>
         </div>
@@ -844,6 +863,7 @@
     let audioCtx = null;
     let activeQrTab = 'judge';
     let messageAutoDismissTimer = null;
+    let watchdogTimer = null;
     let appbarHideTimeout = null;
     let audioDelayTimer = null;
 
@@ -852,7 +872,12 @@
     const seenEventIds = new Set();
     let isCardVisible = false;
     let activeCardStartTime = 0;
-    const MIN_READING_DURATION_MS = 14000; // Guaranteed minimum display time for dementia reading
+
+    // Presentation Pacing Configurations
+    const DEFAULT_READING_DURATION_MS = 14000;   // 14 seconds when reading without voice
+    const QUEUED_NEXT_DURATION_MS = 5000;         // 5 seconds when another message is waiting
+    const POST_AUDIO_DWELL_MS = 4000;             // 4 seconds after speech finishes
+    const MAX_WATCHDOG_LIMIT_MS = 22000;          // Absolute safety ceiling (never hangs > 22s)
 
     const serverPublicUrl = "{{ public_url }}";
 
@@ -867,13 +892,10 @@
     // Contextual Sundowning Grounding Cues tailored to typical panic hours
     function getSundowningReassurance(hour) {
       if (hour >= 16 && hour < 21) {
-        // Peak Sundowning window (4 PM - 9 PM): Alleviates the urge to leave
         return 'Safe at home for the evening • <strong>Everything is taken care of</strong>';
       } else if (hour >= 21 || hour < 5) {
-        // Night disorientation: Reassures resting place
         return 'Safe in your room for the night • <strong>Rest peacefully until morning</strong>';
       }
-      // Daytime baseline: Emotional attachment & safety
       return 'Safe at home in <strong>Room 3B</strong> • Your family is thinking of you';
     }
 
@@ -1230,26 +1252,17 @@
       }
     }
 
+    // Tap/Click anywhere on viewport or card advances or dismisses immediately
+    function handleViewportClick(event) {
+      if (!isCardVisible) return;
+      // Ignore clicks on header controls
+      if (event.target.closest('#deviceAppbar') || event.target.closest('#qrModal')) return;
+      handleCardDismissOrNext();
+    }
+
     function handleCardDismissOrNext() {
-      if (audioDelayTimer) {
-        clearTimeout(audioDelayTimer);
-        audioDelayTimer = null;
-      }
-
-      if (messageAutoDismissTimer) {
-        clearTimeout(messageAutoDismissTimer);
-        messageAutoDismissTimer = null;
-      }
-
-      const audioEl = document.getElementById('audioElement');
-      if (audioEl && !audioEl.paused) {
-        audioEl.pause();
-      }
-
-      const chimeEl = document.getElementById('chimeElement');
-      if (chimeEl && !chimeEl.paused) {
-        chimeEl.pause();
-      }
+      clearAllTimers();
+      stopAudioPlayback();
 
       if (messageQueue.length > 0) {
         const nextMessage = messageQueue.shift();
@@ -1260,26 +1273,35 @@
       dismissMessageCard();
     }
 
-    function dismissMessageCard() {
+    function clearAllTimers() {
       if (audioDelayTimer) {
         clearTimeout(audioDelayTimer);
         audioDelayTimer = null;
       }
-
       if (messageAutoDismissTimer) {
         clearTimeout(messageAutoDismissTimer);
         messageAutoDismissTimer = null;
       }
+      if (watchdogTimer) {
+        clearTimeout(watchdogTimer);
+        watchdogTimer = null;
+      }
+    }
 
+    function stopAudioPlayback() {
       const audioEl = document.getElementById('audioElement');
       if (audioEl && !audioEl.paused) {
         audioEl.pause();
       }
-
       const chimeEl = document.getElementById('chimeElement');
       if (chimeEl && !chimeEl.paused) {
         chimeEl.pause();
       }
+    }
+
+    function dismissMessageCard() {
+      clearAllTimers();
+      stopAudioPlayback();
 
       isCardVisible = false;
       const card = document.getElementById('messageStageCard');
@@ -1299,30 +1321,41 @@
       updateQueueUI();
     }
 
-    function scheduleAutoTransition() {
+    function startProgressAnimation(durationMs) {
+      const bar = document.getElementById('dwellProgressBar');
+      if (!bar) return;
+      bar.style.transition = 'none';
+      bar.style.transform = 'scaleX(1)';
+      // Trigger reflow
+      void bar.offsetWidth;
+      bar.style.transition = `transform ${durationMs}ms linear`;
+      bar.style.transform = 'scaleX(0)';
+    }
+
+    function scheduleAutoTransition(delayOverrideMs = null) {
       if (messageAutoDismissTimer) {
         clearTimeout(messageAutoDismissTimer);
         messageAutoDismissTimer = null;
       }
 
-      if (messageQueue.length > 0) {
-        const elapsed = Date.now() - activeCardStartTime;
-        const remainingReadingTime = Math.max(2000, MIN_READING_DURATION_MS - elapsed);
-        messageAutoDismissTimer = setTimeout(() => {
-          handleCardDismissOrNext();
-        }, remainingReadingTime);
+      let delayMs;
+      if (delayOverrideMs !== null) {
+        delayMs = delayOverrideMs;
+      } else if (messageQueue.length > 0) {
+        delayMs = QUEUED_NEXT_DURATION_MS;
       } else {
-        messageAutoDismissTimer = setTimeout(() => {
-          dismissMessageCard();
-        }, 32000);
+        delayMs = DEFAULT_READING_DURATION_MS;
       }
+
+      startProgressAnimation(delayMs);
+
+      messageAutoDismissTimer = setTimeout(() => {
+        handleCardDismissOrNext();
+      }, delayMs);
     }
 
     function renderMessageCard(data, autoPlaySound = true) {
-      if (audioDelayTimer) {
-        clearTimeout(audioDelayTimer);
-        audioDelayTimer = null;
-      }
+      clearAllTimers();
 
       lastMessageData = data;
       isCardVisible = true;
@@ -1372,6 +1405,14 @@
       card.classList.add('visible');
       if (recallBtn) recallBtn.style.display = 'none';
 
+      // Always activate a safety watchdog limit so the card never stays permanently frozen
+      watchdogTimer = setTimeout(() => {
+        if (isCardVisible) {
+          console.debug("[Anchor Presentation]: Watchdog limit reached. Auto-transitioning.");
+          handleCardDismissOrNext();
+        }
+      }, MAX_WATCHDOG_LIMIT_MS);
+
       if (autoPlaySound) {
         playOrientingChime(0.55);
       }
@@ -1412,22 +1453,21 @@
               }).catch(() => {
                 voiceCaption.textContent = 'Tap Listen Again to hear message';
                 voiceGroup.classList.remove('speaking');
-                scheduleAutoTransition();
+                scheduleAutoTransition(DEFAULT_READING_DURATION_MS);
               });
             }
 
             audioEl.onended = () => {
               voiceGroup.classList.remove('speaking');
               voiceCaption.textContent = 'Spoken message finished';
-              setTimeout(() => {
-                scheduleAutoTransition();
-              }, 6000);
+              // Return to ambient clock 4 seconds after voice concludes
+              scheduleAutoTransition(POST_AUDIO_DWELL_MS);
             };
-          }, 2000);
+          }, 1500);
         } else {
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = 'Voice message ready';
-          scheduleAutoTransition();
+          scheduleAutoTransition(DEFAULT_READING_DURATION_MS);
         }
       } else {
         currentAudioUrl = null;
@@ -1435,7 +1475,7 @@
         voiceGroup.style.display = 'none';
         voiceGroup.classList.remove('speaking');
         voiceCaption.textContent = '';
-        scheduleAutoTransition();
+        scheduleAutoTransition(DEFAULT_READING_DURATION_MS);
       }
     }
 
@@ -1445,15 +1485,7 @@
       const voiceCaption = document.getElementById('voiceCaption');
 
       if (currentAudioUrl && audioEl) {
-        if (audioDelayTimer) {
-          clearTimeout(audioDelayTimer);
-          audioDelayTimer = null;
-        }
-
-        if (messageAutoDismissTimer) {
-          clearTimeout(messageAutoDismissTimer);
-          messageAutoDismissTimer = null;
-        }
+        clearAllTimers();
 
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
@@ -1472,9 +1504,7 @@
         audioEl.onended = () => {
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = 'Spoken message finished';
-          setTimeout(() => {
-            scheduleAutoTransition();
-          }, 6000);
+          scheduleAutoTransition(POST_AUDIO_DWELL_MS);
         };
       }
     }
@@ -1500,11 +1530,11 @@
       const audioEl = document.getElementById('audioElement');
       const isSpeaking = audioEl && !audioEl.paused && !audioEl.ended;
 
-      if (elapsed < MIN_READING_DURATION_MS || isSpeaking) {
+      if (elapsed < 6000 || isSpeaking) {
         messageQueue.push(data);
         updateQueueUI();
         console.log(`[Anchor Queue]: Paced incoming message from ${data.sender_name}. ${messageQueue.length} in queue.`);
-        scheduleAutoTransition();
+        scheduleAutoTransition(QUEUED_NEXT_DURATION_MS);
       } else {
         renderMessageCard(data, true);
       }
