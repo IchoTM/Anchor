@@ -91,6 +91,7 @@ class IMessageWebhookResponse(BaseModel):
     is_malicious: bool = Field(False, description="Whether message was flagged as malicious or predatory scam")
     malicious_reason: Optional[str] = Field(None, description="Reason message was flagged as malicious")
     blocked_from_patient: bool = Field(False, description="Whether message was blocked from Eleanor's bedside station")
+    caregivers_notified: Optional[List[str]] = Field(default_factory=list, description="Non-compromised caregivers alerted")
 
 
 class PresageTelemetryRequest(BaseModel):

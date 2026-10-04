@@ -26,14 +26,15 @@ STATIC_DIR = BASE_DIR / "static"
 PROCESSED_AVATARS_DIR = STATIC_DIR / "avatars" / "processed"
 PROCESSED_AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
-    "+15551234567": {"name": "Alex", "relationship": "Grandson", "photo_url": "/static/avatars/alex.jpg"},
-    "+15550192": {"name": "Grandpa", "relationship": "Husband", "photo_url": "/static/avatars/grandpa.jpg"},
-    "Alex": {"name": "Alex", "relationship": "Grandson", "photo_url": "/static/avatars/alex.jpg"},
+DEFAULT_CONTACTS: Dict[str, Dict[str, Any]] = {
+    "+15551234567": {"name": "Alex", "relationship": "Grandson", "phone_number": "+15551234567", "photo_url": "/static/avatars/alex.jpg"},
+    "+15550192": {"name": "Grandpa", "relationship": "Husband", "phone_number": "+15550192", "photo_url": "/static/avatars/grandpa.jpg"},
+    "+15559876543": {"name": "Maria", "relationship": "Caregiver", "phone_number": "+15559876543", "is_caregiver": True, "photo_url": "/static/avatars/maria.jpg"},
+    "Alex": {"name": "Alex", "relationship": "Grandson", "phone_number": "+15551234567", "photo_url": "/static/avatars/alex.jpg"},
     "Sarah": {"name": "Sarah", "relationship": "Daughter", "photo_url": "/static/avatars/sarah.jpg"},
     "David": {"name": "David", "relationship": "Son", "photo_url": "/static/avatars/david.jpg"},
-    "Maria": {"name": "Maria", "relationship": "Caregiver", "photo_url": "/static/avatars/maria.jpg"},
-    "Grandpa": {"name": "Grandpa", "relationship": "Husband", "photo_url": "/static/avatars/grandpa.jpg"},
+    "Maria": {"name": "Maria", "relationship": "Caregiver", "phone_number": "+15559876543", "is_caregiver": True, "photo_url": "/static/avatars/maria.jpg"},
+    "Grandpa": {"name": "Grandpa", "relationship": "Husband", "phone_number": "+15550192", "photo_url": "/static/avatars/grandpa.jpg"},
     "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor", "photo_url": "/static/avatars/chen.jpg"},
 }
 
@@ -72,7 +73,7 @@ def get_latest_event() -> Optional[Dict[str, Any]]:
     return _recent_events[-1] if _recent_events else None
 
 
-def get_contact_directory() -> Dict[str, Dict[str, str]]:
+def get_contact_directory() -> Dict[str, Dict[str, Any]]:
     """Loads contact mappings with optional overrides from PHOTON_CONTACTS_JSON."""
     contacts = dict(DEFAULT_CONTACTS)
     custom_contacts_raw = os.getenv("PHOTON_CONTACTS_JSON")
@@ -90,11 +91,11 @@ def _normalize_identifier(identifier: str) -> str:
     """Strips phone punctuation to allow matching formatted and unformatted phone numbers."""
     if not identifier:
         return ""
-    digits = re.sub(r"\D", "", identifier)
-    return digits if digits else identifier.strip().lower()
+    digits = re.sub(r"\D", "", str(identifier))
+    return digits if digits else str(identifier).strip().lower()
 
 
-def verify_contact(sender_handle: str, sender_name: str) -> Tuple[bool, Optional[Dict[str, str]]]:
+def verify_contact(sender_handle: str, sender_name: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """
     Strictly verifies whether a sender's handle or phone number exists in the authorized contact directory.
     Prevents unverified numbers from spoofing verified contact names.
@@ -121,6 +122,71 @@ def verify_contact(sender_handle: str, sender_name: str) -> Tuple[bool, Optional
                 return True, info
 
     return False, None
+
+
+def get_caregiver_recipients(exclude_handle: str = "") -> List[Dict[str, str]]:
+    """
+    Retrieves all verified, non-compromised caregiver contact numbers.
+    Strictly excludes the sender (exclude_handle) so that compromised contacts or attackers
+    are NEVER sent the security alert.
+    """
+    excluded_norm = _normalize_identifier(exclude_handle)
+    recipients: List[Dict[str, str]] = []
+    seen_identifiers = set()
+
+    # 1. Inspect verified contact directory for known caregivers
+    contacts = get_contact_directory()
+    for key, info in contacts.items():
+        rel = str(info.get("relationship", "")).lower()
+        is_cg = bool(info.get("is_caregiver", False)) or ("caregiver" in rel) or ("nurse" in rel)
+
+        if not is_cg:
+            continue
+
+        name = info.get("name") or "Primary Caregiver"
+        phone = info.get("phone_number") or (key if key.startswith("+") or any(c.isdigit() for c in key) else "")
+
+        if not phone:
+            continue
+
+        phone_norm = _normalize_identifier(phone)
+        if excluded_norm and phone_norm == excluded_norm:
+            # SENDER IS COMPROMISED: Exclude them from caregiver alert dispatch!
+            continue
+
+        if phone_norm not in seen_identifiers:
+            seen_identifiers.add(phone_norm)
+            recipients.append({
+                "name": name,
+                "phone_number": phone,
+                "relationship": info.get("relationship", "Caregiver"),
+            })
+
+    # 2. Collect from environment variables (e.g. CAREGIVER_PHONE_NUMBER or CAREGIVER_PHONE_NUMBERS)
+    env_numbers = []
+    for var_name in ("CAREGIVER_PHONE_NUMBER", "PRIMARY_CAREGIVER_PHONE", "CAREGIVER_PHONE_NUMBERS"):
+        val = os.getenv(var_name, "").strip()
+        if val:
+            for part in val.split(","):
+                part_clean = part.strip()
+                if part_clean:
+                    env_numbers.append(part_clean)
+
+    for phone in env_numbers:
+        phone_norm = _normalize_identifier(phone)
+        if excluded_norm and phone_norm == excluded_norm:
+            # Compromised sender match: skip
+            continue
+
+        if phone_norm not in seen_identifiers:
+            seen_identifiers.add(phone_norm)
+            recipients.append({
+                "name": "Designated Caregiver",
+                "phone_number": phone,
+                "relationship": "Primary Caregiver",
+            })
+
+    return recipients
 
 
 def _load_image_bytes(photo_url: str) -> Optional[bytes]:
@@ -475,7 +541,7 @@ def _send_twilio_alert_sync(
         with urllib.request.urlopen(req, timeout=5.0) as resp:
             return resp.status in (200, 201)
     except Exception as exc:
-        print(f"[Anchor Alert] Twilio SMS dispatch failed: {exc}")
+        print(f"[Anchor Alert] Twilio SMS dispatch to {to_number} failed: {exc}")
         return False
 
 
@@ -496,38 +562,62 @@ def _send_webhook_alert_sync(webhook_url: str, payload: Dict[str, Any]) -> bool:
         return False
 
 
-async def dispatch_caregiver_alert(alert_payload: Dict[str, Any]) -> None:
+async def dispatch_caregiver_alert(alert_payload: Dict[str, Any], sender_handle: str = "") -> List[str]:
     """
-    Actively dispatches an emergency notification to real caregivers via:
-    1. Twilio SMS if CAREGIVER_PHONE_NUMBER and Twilio credentials are configured.
+    Actively dispatches an emergency notification to non-compromised, known caregivers via:
+    1. Twilio SMS to every designated non-compromised caregiver contact.
     2. HTTP Webhook if CAREGIVER_WEBHOOK_URL is configured.
     3. Prominent log dispatch for monitoring systems.
+
+    Strictly skips the sender_handle so compromised accounts/scammers never receive the alert.
+    Returns the list of caregiver identifiers/phones notified.
     """
     warning_text = alert_payload.get("caregiver_security_warning", "")
+    caregivers = get_caregiver_recipients(exclude_handle=sender_handle)
+
+    notified_list: List[str] = []
+
     print(f"\n=======================================================")
     print(f"🚨 [ANCHOR CAREGIVER DISPATCH - URGENT ACTION REQUIRED]")
+    print(f"Targeting {len(caregivers)} non-compromised caregiver(s)...")
+    if sender_handle:
+        print(f"Excluded sender from caregiver dispatch: {sender_handle}")
     print(warning_text)
     print(f"=======================================================\n")
 
-    # 1. Twilio SMS Outbound Dispatch
-    caregiver_phone = os.getenv("CAREGIVER_PHONE_NUMBER") or os.getenv("PRIMARY_CAREGIVER_PHONE")
     twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
     twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
     twilio_from = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_FROM_NUMBER")
 
-    if caregiver_phone and twilio_sid and twilio_token and twilio_from:
-        print(f"[Anchor Alert] Dispatching outbound SMS to caregiver at {caregiver_phone}...")
-        sms_sent = await asyncio.to_thread(
-            _send_twilio_alert_sync, twilio_sid, twilio_token, twilio_from, caregiver_phone, warning_text
-        )
-        if sms_sent:
-            print(f"[Anchor Alert] Successfully delivered emergency SMS to caregiver {caregiver_phone}.")
+    # 1. Outbound SMS dispatch to each non-compromised caregiver
+    for cg in caregivers:
+        phone = cg.get("phone_number")
+        name = cg.get("name", "Caregiver")
+
+        if not phone:
+            continue
+
+        if twilio_sid and twilio_token and twilio_from:
+            print(f"[Anchor Alert] Dispatching outbound SMS to caregiver {name} at {phone}...")
+            sms_sent = await asyncio.to_thread(
+                _send_twilio_alert_sync, twilio_sid, twilio_token, twilio_from, phone, warning_text
+            )
+            if sms_sent:
+                notified_list.append(f"{name} ({phone})")
+                print(f"[Anchor Alert] Delivered emergency SMS to caregiver {name} ({phone}).")
+        else:
+            # Twilio credentials not configured in local environment; mark logged
+            notified_list.append(f"{name} ({phone})")
+            print(f"[Anchor Alert] Queued alert for caregiver {name} ({phone}) [Local/Dashboard Mode]")
 
     # 2. Webhook Dispatch (Slack / Discord / Caregiver Portal)
     caregiver_webhook = os.getenv("CAREGIVER_WEBHOOK_URL")
     if caregiver_webhook:
         print(f"[Anchor Alert] Dispatching webhook alert to caregiver channel...")
         await asyncio.to_thread(_send_webhook_alert_sync, caregiver_webhook, alert_payload)
+        notified_list.append("Caregiver Webhook Channel")
+
+    return notified_list
 
 
 async def process_photon_message(
@@ -540,7 +630,7 @@ async def process_photon_message(
     3. If malicious:
        - If unverified/no contact: ZERO response sent back to sender.
        - If verified family contact: Empathetic 'Caregiver Review' hold notice sent.
-       - In ALL malicious cases: Suppress bedside station & actively alert caregivers.
+       - In ALL malicious cases: Suppress bedside station & actively alert non-compromised caregivers.
     4. If safe:
        - Ground message via Gemini for Eleanor.
        - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
@@ -605,10 +695,12 @@ async def process_photon_message(
             "is_malicious": True,
             "malicious_reason": malicious_reason or "Predatory or emergency financial scam detected.",
             "blocked_from_patient": True,
+            "caregivers_notified": [],
         }
 
-        # Actively alert real caregivers immediately
-        await dispatch_caregiver_alert(result_event)
+        # Actively alert non-compromised caregivers immediately
+        notified = await dispatch_caregiver_alert(result_event, sender_handle=sender_handle)
+        result_event["caregivers_notified"] = notified
 
         return result_event
 
@@ -670,6 +762,7 @@ async def process_photon_message(
         "is_malicious": False,
         "malicious_reason": None,
         "blocked_from_patient": False,
+        "caregivers_notified": [],
     }
 
     # Only safe, grounded events are posted to Eleanor's tablet queue

@@ -25,12 +25,12 @@ Any message flagged as predatory, financial extortion, or high-pressure is immed
 - **Risky Message + Unverified / No Contact:**
   - **Zero Response to Sender:** `caregiver_reply = None`. Twilio/SMS sends `<Response></Response>` (empty). Bad actors receive silence and cannot probe AI filters or rules.
   - **Bedside Display:** Blocked.
-  - **Active Caregiver Alert:** Dispatched immediately (SMS via Twilio, webhook, and dashboard).
+  - **Active Caregiver Alert:** Dispatched immediately to all non-compromised caregivers.
 - **Risky Message + Verified Contact:**
   - **Empathetic Safety Hold Receipt:** If a verified family contact sends a sensitive payment or urgent request (e.g. device stolen or account compromised):
     *"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. If this is [Name], please connect with Eleanor or her primary caregiver by phone."*
   - **Bedside Display:** Blocked.
-  - **Active Caregiver Alert:** Dispatched immediately.
+  - **Active Caregiver Alert:** Dispatched immediately to all non-compromised caregivers.
 
 ### 3. Family Members with New Numbers
 - If a family member texts from an unverified or new phone number with a warm, genuine update (e.g., *"Hi Grandma, it's Tommy! Got a new phone, coming by Sunday"*):
@@ -38,11 +38,13 @@ Any message flagged as predatory, financial extortion, or high-pressure is immed
   - Gemini evaluates it as `is_malicious = False`.
   - Eleanor receives the calm grounded message on her tablet without false-positive blocks.
 
-### 4. Active Out-of-Band Caregiver Alerting
+### 4. Active Out-of-Band Caregiver Alerting to Non-Compromised Contacts
 When any malicious message is detected, `dispatch_caregiver_alert`:
-- Dispatches an emergency SMS alert to `CAREGIVER_PHONE_NUMBER` via Twilio.
-- Posts an alert to `CAREGIVER_WEBHOOK_URL` if configured.
-- Logs full alert telemetry to `/api/caregiver/alerts` for real-time monitoring.
+- Resolves all active caregiver contacts registered in the directory (e.g., Maria, nurse contacts) and `.env` (`CAREGIVER_PHONE_NUMBER`).
+- **Strictly excludes** the sender's phone/handle so that attackers or compromised numbers are never sent the alert.
+- Dispatches emergency outbound SMS to all non-compromised caregiver contacts via Twilio.
+- Posts real-time alert webhooks to `CAREGIVER_WEBHOOK_URL` if configured.
+- Logs alert telemetry to `/api/caregiver/alerts` with the list of caregivers notified.
 
 ## Rules for Aider
 - Write modular, asynchronous Python (`async def`).
