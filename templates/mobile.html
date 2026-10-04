@@ -43,7 +43,7 @@
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.16);
-      padding: calc(6px + env(safe-area-inset-top)) 14px 8px;
+      padding: calc(8px + env(safe-area-inset-top)) 14px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -77,13 +77,13 @@
     }
 
     .contact-avatar {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, #c084fc, #6366f1);
       display: grid;
       place-items: center;
-      font-size: 20px;
+      font-size: 22px;
       box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
@@ -92,11 +92,11 @@
       display: flex;
       align-items: center;
       gap: 3px;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     .contact-name {
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 600;
       color: #fff;
     }
@@ -113,73 +113,28 @@
     }
 
     .facetime-btn {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.08);
       display: grid;
       place-items: center;
-      font-size: 14px;
       color: var(--ios-blue);
       border: 0.5px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Sender Identity Pill Banner */
-    .identity-subnav {
-      background: rgba(18, 18, 20, 0.95);
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 6px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-      z-index: 90;
-    }
-
-    .identity-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(56, 189, 248, 0.12);
-      border: 0.5px solid rgba(56, 189, 248, 0.3);
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 11.5px;
-      color: #7dd3fc;
       cursor: pointer;
     }
 
-    .identity-pill strong {
-      color: #ffffff;
-      font-weight: 600;
-    }
-
-    .identity-pill .edit-icon {
-      font-size: 10px;
-      opacity: 0.8;
-    }
-
-    .connection-badge {
-      font-size: 11px;
-      color: #34d399;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .connection-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 6px #10b981;
+    .facetime-btn svg {
+      width: 17px;
+      height: 17px;
+      fill: currentColor;
     }
 
     /* Message History Stream */
     .chat-scroll {
       flex: 1 1 0%;
       min-height: 0;
-      padding: 14px 14px 10px;
+      padding: 16px 14px 10px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -616,7 +571,7 @@
 
   <!-- iMessage Top Bar -->
   <header class="imessage-header">
-    <div class="header-nav-left" onclick="window.history.back()">
+    <div class="header-nav-left" onclick="openIdentityModal()">
       <span class="chevron-back">‹</span>
       <span>Messages</span>
     </div>
@@ -630,24 +585,11 @@
     </div>
 
     <div class="header-nav-right">
-      <div class="facetime-btn" title="Settings" onclick="openIdentityModal()">
-        <span>⚙️</span>
+      <div class="facetime-btn" title="FaceTime" onclick="openIdentityModal()">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>
       </div>
     </div>
   </header>
-
-  <!-- Identity Subnav Pill -->
-  <div class="identity-subnav">
-    <div class="identity-pill" onclick="openIdentityModal()">
-      <span>Texting as:</span>
-      <strong id="headerSenderDisplay">Alex (Grandson)</strong>
-      <span class="edit-icon">✎</span>
-    </div>
-    <div class="connection-badge" id="connectionBadge">
-      <div class="connection-dot"></div>
-      <span id="connectionBadgeText">Anchor Active</span>
-    </div>
-  </div>
 
   <!-- Messages History Stream -->
   <div class="chat-scroll" id="chatStream"></div>
@@ -774,19 +716,6 @@
       sendBtn.disabled = !input.value.trim();
     }
 
-    function updateHeaderDisplay() {
-      const display = document.getElementById('headerSenderDisplay');
-      const badgeText = document.getElementById('connectionBadgeText');
-
-      if (display) {
-        display.textContent = `${currentSender} (${currentRelationship})`;
-      }
-
-      if (badgeText) {
-        badgeText.textContent = isFamilyOrCaregiver() ? "Anchor Shield Active" : "Carrier Active";
-      }
-    }
-
     function openIdentityModal() {
       document.getElementById('contactInfoInput').value = currentSender;
       document.getElementById('relationInput').value = currentRelationship;
@@ -814,7 +743,6 @@
       localStorage.setItem('anchor_sender_name', currentSender);
       localStorage.setItem('anchor_sender_rel', currentRelationship);
 
-      updateHeaderDisplay();
       closeIdentityModal();
 
       // Whenever changing personas, clear out conversation history
@@ -826,7 +754,6 @@
 
     // Modal pops up on load, and resets stream for selected persona
     window.addEventListener('DOMContentLoaded', () => {
-      updateHeaderDisplay();
       resetChatStreamForCurrentPersona();
       openIdentityModal();
     });
