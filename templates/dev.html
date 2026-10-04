@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Anchor • Remote Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0b1017;
+      --card-bg: #141c28;
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --calm: #10b981;
+      --panic: #f43f5e;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    body {
+      background: #090e15;
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .brand-title h1 {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .brand-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    /* Biometrics Grid */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric-chip {
+      background: #0d141e;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .metric-val {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .metric-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-calm {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--calm);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-panic {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--panic);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #253346;
+      outline: none;
+      margin: 4px 0;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .quick-biometric-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-quick-bio {
+      flex: 1;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Message Simulator */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      background: #0d141e;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-send:disabled {
+      opacity: 0.6;
+    }
+
+    .result-alert {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .result-alert.success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .result-alert.scam {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fda4af;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🛠️</div>
+      <div class="brand-title">
+        <h1>Anchor Controller</h1>
+        <p>Presenter Remote Control</p>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: var(--calm); font-weight: 600;">
+      ● Online
+    </div>
+  </header>
+
+  <!-- Panel 1: Presage Biometrics Live Controller -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Eleanor's Biometrics</span>
+      <span id="anxietyBadge" class="status-pill status-calm">CALM (TEXT ONLY)</span>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-chip">
+        <div>
+          <div class="metric-lbl">Heart Rate</div>
+          <div class="metric-val" id="hrDisplay">74 <span style="font-size: 11px; color: var(--text-muted);">BPM</span></div>
+        </div>
+        <span style="font-size: 20px;">❤️</span>
+      </div>
+      <div class="metric-chip">
+        <div>
+          <div class="metric-lbl">Respiration</div>
+          <div class="metric-val" id="rrDisplay">16 <span style="font-size: 11px; color: var(--text-muted);">BrPM</span></div>
+        </div>
+        <span style="font-size: 20px;">🫁</span>
+      </div>
+    </div>
+
+    <input type="range" min="0" max="100" value="25" class="slider" id="anxietySlider" oninput="onAnxietySlider(this.value)">
+
+    <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+      <span>0% Baseline</span>
+      <span id="anxietyPct">25%</span>
+      <span>100% Panic Spike</span>
+    </div>
+
+    <div class="quick-biometric-btns">
+      <button class="btn-quick-bio" onclick="setAnxiety(20)">🟢 Set Calm (20%)</button>
+      <button class="btn-quick-bio" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onclick="setAnxiety(88)">🚨 Set Panic (88%)</button>
+    </div>
+  </div>
+
+  <!-- Panel 2: Inbound Message Simulator -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Simulate Inbound Text</span>
+      <span style="font-size: 16px;">📱</span>
+    </div>
+
+    <div class="field-group">
+      <label>Sender Persona</label>
+      <select id="contactSelect" onchange="onContactChange()">
+        <option value="Alex|Grandson">Alex (Grandson)</option>
+        <option value="Sarah|Daughter">Sarah (Daughter)</option>
+        <option value="David|Son">David (Son)</option>
+        <option value="Maria|Caregiver">Maria (Caregiver)</option>
+        <option value="Dr. Chen|Doctor">Dr. Chen (Doctor)</option>
+        <option value="custom|Custom">Custom / Unknown...</option>
+      </select>
+    </div>
+
+    <div class="field-group" id="customContactGroup" style="display:none; gap: 6px;">
+      <input type="text" id="customName" placeholder="Name or Number (e.g. +1 555-0199)">
+      <input type="text" id="customRelation" placeholder="Relationship (e.g. Unknown Sender)">
+    </div>
+
+    <div class="field-group">
+      <label>Message Content</label>
+      <textarea id="rawMessageInput" rows="2" placeholder="Message text...">I will be there in 10 mins!</textarea>
+    </div>
+
+    <div class="field-group">
+      <label>Demo Scenarios</label>
+      <div class="preset-chips">
+        <span class="chip" onclick="setScenario('Alex', 'Grandson', 'I will be there in 10 mins!')">⏳ 10 Mins (Panic)</span>
+        <span class="chip" onclick="setScenario('Sarah', 'Daughter', 'Did you take your pills? Call me.')">💊 Pill Check</span>
+        <span class="chip" onclick="setScenario('David', 'Son', 'I found your glasses on the table.')">👓 Lost Item</span>
+        <span class="chip" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onclick="setScenario('custom', 'Unknown', 'Grandma, I got arrested in Mexico and need $2,000 bail money right now. Wire it immediately and do not tell mom!')">🚨 Fake Bail Scam</span>
+      </div>
+    </div>
+
+    <button class="btn-send" id="sendBtn" onclick="sendSimulatedMessage()">
+      <span>Trigger Inbound Text</span>
+      <span>➔</span>
+    </button>
+
+    <div id="resultAlert" class="result-alert"></div>
+  </div>
+
+  <script>
+    function onAnxietySlider(val) {
+      const pct = parseInt(val);
+      document.getElementById('anxietyPct').textContent = pct + '%';
+      const badge = document.getElementById('anxietyBadge');
+      const hr = document.getElementById('hrDisplay');
+      const rr = document.getElementById('rrDisplay');
+
+      const isPanic = pct >= 60;
+      if (isPanic) {
+        badge.className = 'status-pill status-panic';
+        badge.textContent = 'ELEVATED (VOICE ON)';
+        hr.innerHTML = `${Math.round(80 + (pct * 0.35))} <span style="font-size: 11px; color: var(--text-muted);">BPM</span>`;
+        rr.innerHTML = `${Math.round(18 + (pct * 0.1))} <span style="font-size: 11px; color: var(--text-muted);">BrPM</span>`;
+      } else {
+        badge.className = 'status-pill status-calm';
+        badge.textContent = 'CALM (TEXT ONLY)';
+        hr.innerHTML = `72 <span style="font-size: 11px; color: var(--text-muted);">BPM</span>`;
+        rr.innerHTML = `15 <span style="font-size: 11px; color: var(--text-muted);">BrPM</span>`;
+      }
+
+      fetch('/telemetry/presage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anxiety_score: pct / 100.0,
+          anxiety_detected: isPanic,
+          heart_rate: parseFloat(hr.innerText),
+          respiration_rate: parseFloat(rr.innerText)
+        })
+      }).catch(err => console.warn('Telemetry error:', err));
+    }
+
+    function setAnxiety(val) {
+      document.getElementById('anxietySlider').value = val;
+      onAnxietySlider(val);
+    }
+
+    function onContactChange() {
+      const val = document.getElementById('contactSelect').value;
+      const customGroup = document.getElementById('customContactGroup');
+      customGroup.style.display = val.startsWith('custom') ? 'flex' : 'none';
+    }
+
+    function setScenario(name, relationship, message) {
+      document.getElementById('rawMessageInput').value = message;
+      const select = document.getElementById('contactSelect');
+
+      if (name === 'custom') {
+        select.value = 'custom|Custom';
+        document.getElementById('customName').value = '+1 (555) 019-2834';
+        document.getElementById('customRelation').value = 'Unknown Sender';
+        onContactChange();
+        return;
+      }
+
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.includes(name)) {
+          select.selectedIndex = i;
+          onContactChange();
+          break;
+        }
+      }
+    }
+
+    async function sendSimulatedMessage() {
+      const sendBtn = document.getElementById('sendBtn');
+      const contactVal = document.getElementById('contactSelect').value;
+      const rawMessage = document.getElementById('rawMessageInput').value.trim();
+      const alertEl = document.getElementById('resultAlert');
+
+      if (!rawMessage) return;
+
+      let senderName = "Alex";
+      let relationship = "Grandson";
+
+      if (contactVal.startsWith('custom')) {
+        senderName = document.getElementById('customName').value.trim() || "+1 (555) 019-2834";
+        relationship = document.getElementById('customRelation').value.trim() || "Unknown Sender";
+      } else {
+        const parts = contactVal.split('|');
+        senderName = parts[0];
+        relationship = parts[1];
+      }
+
+      const anxietyScore = parseInt(document.getElementById('anxietySlider').value) / 100.0;
+      const anxietyDetected = anxietyScore >= 0.60;
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span>Processing...</span>';
+
+      try {
+        const response = await fetch('/webhook/imessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_name: senderName,
+            relationship: relationship,
+            raw_message: rawMessage,
+            anxiety_detected: anxietyDetected,
+            anxiety_score: anxietyScore
+          })
+        });
+
+        const data = await response.json();
+        alertEl.style.display = 'block';
+
+        if (data.is_malicious || data.blocked_from_patient) {
+          alertEl.className = 'result-alert scam';
+          alertEl.innerHTML = `<strong>🚨 SCAM BLOCKED:</strong> Suppressed from Eleanor's bedside station.<br>Caregivers alerted: "${data.malicious_reason || 'Predatory scam detected'}"`;
+        } else {
+          alertEl.className = 'result-alert success';
+          const audioMsg = data.audio_generated ? '🎙️ Spoken Aloud to Eleanor' : '👁️ Screen Display Only';
+          alertEl.innerHTML = `<strong>✓ DELIVERED:</strong> ${audioMsg}<br>"${data.grounded_message}"`;
+        }
+      } catch (err) {
+        alert("Failed to send message: " + err);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<span>Trigger Inbound Text</span> <span>➔</span>';
+      }
+    }
+  </script>
+</body>
+</html>

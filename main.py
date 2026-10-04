@@ -160,7 +160,6 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
 
     # If incoming via external Twilio SMS
     if is_form and ("From" in payload or "AccountSid" in payload):
-        # A malicious sender is NEVER given the detection reason or internal alert details
         if result.get("is_malicious"):
             twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>"""
@@ -267,10 +266,19 @@ async def serve_mobile_caregiver():
     return render_template("mobile.html")
 
 
+@app.get("/dev", response_class=HTMLResponse)
+@app.get("/controller", response_class=HTMLResponse)
+async def serve_dev_controller():
+    """Serves the remote presenter control panel for Presage biometric simulation and test triggers."""
+    configured_public_url = os.getenv("PUBLIC_URL", os.getenv("NGROK_URL", "")).rstrip("/")
+    return render_template("dev.html", context={"public_url": configured_public_url})
+
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/demo", response_class=HTMLResponse)
+@app.get("/tablet", response_class=HTMLResponse)
 async def serve_demo_tablet():
-    """Serves Grandma Eleanor's Bedside Station dashboard."""
+    """Serves Grandma Eleanor's Bedside Station display."""
     configured_public_url = os.getenv("PUBLIC_URL", os.getenv("NGROK_URL", "")).rstrip("/")
     return render_template("tablet.html", context={"public_url": configured_public_url})
 
