@@ -466,6 +466,7 @@
       border-radius: 10px;
       border: 1px solid rgba(56, 189, 248, 0.25);
       line-height: 1.4;
+      transition: all 0.2s;
     }
 
     .voice-player {
@@ -644,8 +645,8 @@
 
         <div class="field-group" id="customContactGroup" style="display:none; flex-direction:column; gap: 8px;">
           <label>Custom Sender Info</label>
-          <input type="text" id="customName" placeholder="Name (e.g. Emily)">
-          <input type="text" id="customRelation" placeholder="Relationship to Eleanor (e.g. Niece)">
+          <input type="text" id="customName" placeholder="Name or Phone (e.g. +1-555-0199)">
+          <input type="text" id="customRelation" placeholder="Relationship to Eleanor (e.g. Unknown)">
         </div>
 
         <div class="field-group">
@@ -654,12 +655,12 @@
         </div>
 
         <div class="field-group">
-          <label>Quick Dementia Test Scenarios</label>
+          <label>Quick Dementia &amp; Security Scenarios</label>
           <div class="preset-chips">
             <span class="chip" onclick="setScenario('Alex', 'Grandson', 'I will be there in 10 mins!')">⏳ 10 Mins (Panic)</span>
             <span class="chip" onclick="setScenario('Sarah', 'Daughter', 'Did you take your pills? Call me.')">💊 Pill Check</span>
             <span class="chip" onclick="setScenario('David', 'Son', 'I found your glasses on the table.')">👓 Lost Item</span>
-            <span class="chip" onclick="setScenario('Dr. Chen', 'Doctor', 'Appointment confirmed for 3:00 PM today.')">📅 Appointment</span>
+            <span class="chip" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onclick="setScenario('custom', 'Unknown', 'Grandma, I got arrested in Mexico and need $2,000 bail money right now. Wire it immediately and do not tell mom!')">🚨 Fake Bail Scam</span>
           </div>
         </div>
 
@@ -751,10 +752,10 @@
         </div>
 
         <div class="caregiver-receipt" id="caregiverReceiptBox">
-          <span>📲</span>
+          <span id="receiptIcon">📲</span>
           <div>
-            <strong>Caregiver Auto-Receipt Sent:</strong>
-            <span id="caregiverReceiptText">Anchor: Message delivered and grounded for Eleanor. Vitals are calm.</span>
+            <strong id="receiptHeader">Caregiver Auto-Receipt Sent:</strong>
+            <div id="caregiverReceiptText" style="margin-top: 3px; white-space: pre-line;">Anchor: Message delivered and grounded for Eleanor. Vitals are calm.</div>
           </div>
         </div>
       </div>
@@ -807,7 +808,6 @@
 
     const serverPublicUrl = "{{ public_url }}";
 
-    // Mark sound active on the button
     function markSoundActive() {
       const soundBtn = document.getElementById('soundToggleBtn');
       if (soundBtn) {
@@ -816,7 +816,6 @@
       }
     }
 
-    // Unlock browser audio context so subsequent inbound voice messages play immediately
     function unlockAudio(userExplicit = false) {
       if (audioUnlocked && !userExplicit) return;
 
@@ -837,7 +836,6 @@
 
       const audioEl = document.getElementById('audioElement');
       if (audioEl) {
-        // Unlock HTMLAudioElement with silent 1-sample WAV
         audioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
         audioEl.play().then(() => {
           audioUnlocked = true;
@@ -852,13 +850,11 @@
       }
     }
 
-    // Passively unlock audio on ANY user click, touch, or key interaction
     ['click', 'touchstart', 'keydown', 'mousedown'].forEach(eventName => {
       window.addEventListener(eventName, () => unlockAudio(false), { once: true, passive: true });
     });
 
     async function resolveMobileBaseUrl() {
-      // 1. Try querying the server's live tunnel detector (ngrok API)
       try {
         const resp = await fetch('/api/tunnel-url');
         const data = await resp.json();
@@ -867,12 +863,10 @@
         }
       } catch (e) {}
 
-      // 2. Check server-injected environment variable
       if (serverPublicUrl && serverPublicUrl.length > 0 && !serverPublicUrl.startsWith("{{")) {
         return serverPublicUrl;
       }
 
-      // 3. If loaded on a remote domain/host, use current window origin
       if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
         return window.location.origin;
       }
@@ -900,7 +894,6 @@
       document.getElementById('qrModal').style.display = 'none';
     }
 
-    // Clock
     function updateClock() {
       const now = new Date();
       document.getElementById('clockTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -922,6 +915,15 @@
     function setScenario(name, relationship, message) {
       document.getElementById('rawMessageInput').value = message;
       const select = document.getElementById('contactSelect');
+
+      if (name === 'custom') {
+        select.value = 'custom|Custom|💬';
+        document.getElementById('customName').value = '+1 (555) 019-2834';
+        document.getElementById('customRelation').value = 'Unknown Sender';
+        onContactChange();
+        return;
+      }
+
       for (let i = 0; i < select.options.length; i++) {
         if (select.options[i].value.includes(name)) {
           select.selectedIndex = i;
@@ -950,7 +952,6 @@
         rr.innerHTML = `15 <span style="font-size:14px;color:var(--text-muted);">BrPM</span>`;
       }
 
-      // Sync with Presage telemetry endpoint
       fetch('/telemetry/presage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -979,9 +980,9 @@
       let avatar = "👴";
 
       if (contactVal.startsWith('custom')) {
-        senderName = document.getElementById('customName').value.trim() || "Family Member";
-        relationship = document.getElementById('customRelation').value.trim() || "Family";
-        avatar = "💬";
+        senderName = document.getElementById('customName').value.trim() || "+1-555-0199";
+        relationship = document.getElementById('customRelation').value.trim() || "Unknown";
+        avatar = "⚠️";
       } else {
         const parts = contactVal.split('|');
         senderName = parts[0];
@@ -993,7 +994,7 @@
       const anxietyDetected = anxietyScore >= 0.60;
 
       sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span>Anchor Grounding...</span> <div class="pulse-dot"></div>';
+      sendBtn.innerHTML = '<span>Anchor Scanning &amp; Grounding...</span> <div class="pulse-dot"></div>';
 
       try {
         const response = await fetch('/webhook/imessage', {
@@ -1009,9 +1010,6 @@
         });
 
         const data = await response.json();
-        if (data.event_id) {
-          lastEventId = data.event_id;
-        }
         updateBedsideDisplay(data, avatar);
       } catch (err) {
         alert("Failed to communicate with Anchor server: " + err);
@@ -1022,21 +1020,45 @@
     }
 
     function updateBedsideDisplay(data, avatar) {
+      const receiptBox = document.getElementById('caregiverReceiptBox');
+      const receiptHeader = document.getElementById('receiptHeader');
+      const receiptText = document.getElementById('caregiverReceiptText');
+      const receiptIcon = document.getElementById('receiptIcon');
+
+      // MALICIOUS SCAM INTERVENTION
+      if (data.is_malicious || data.blocked_from_patient) {
+        // DO NOT update Eleanor's quote or banner. Protect her station!
+        receiptBox.style.background = 'rgba(244, 63, 94, 0.15)';
+        receiptBox.style.borderColor = 'rgba(244, 63, 94, 0.45)';
+        receiptBox.style.color = '#fda4af';
+        receiptIcon.textContent = '🚨';
+        receiptHeader.textContent = 'ANCHOR SHIELD • Malicious Message Blocked:';
+        receiptText.textContent = data.caregiver_reply || "Malicious message blocked from Eleanor's bedside station.";
+
+        const statusText = document.getElementById('audioStatusText');
+        statusText.textContent = "🛡️ Malicious content blocked • Bedside station quiet";
+        statusText.style.color = '#fb7185';
+        document.getElementById('replayBtn').style.display = 'none';
+        return;
+      }
+
+      // SAFE GROUNDED MESSAGE
       if (data.event_id) {
         lastEventId = data.event_id;
       }
+
+      receiptBox.style.background = 'rgba(56, 189, 248, 0.08)';
+      receiptBox.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+      receiptBox.style.color = '#38bdf8';
+      receiptIcon.textContent = '📲';
+      receiptHeader.textContent = 'Caregiver Auto-Receipt Sent:';
+      receiptText.textContent = data.caregiver_reply || "Anchor: Message delivered and grounded.";
 
       document.getElementById('avatarDisplay').textContent = avatar || "💬";
       document.getElementById('senderNameDisplay').textContent = data.sender_name;
       document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
       document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
       document.getElementById('rawInterceptedDisplay').textContent = `"${data.raw_message}"`;
-
-      // Update Caregiver auto-reply receipt
-      const receiptText = document.getElementById('caregiverReceiptText');
-      if (data.caregiver_reply) {
-        receiptText.textContent = data.caregiver_reply;
-      }
 
       const wave = document.getElementById('audioWave');
       const statusText = document.getElementById('audioStatusText');
@@ -1102,7 +1124,7 @@
       }
     }
 
-    // Background poller for live external webhooks (e.g. from the mobile /text page or curl)
+    // Background poller for live external webhooks
     setInterval(async () => {
       try {
         const res = await fetch('/api/events/latest');

@@ -7,7 +7,7 @@ from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv, find_dotenv
 
-from services.gemini_service import generate_grounding_message
+from services.gemini_service import analyze_and_ground_message
 from services.elevenlabs_service import generate_speech_audio
 from services.presage_service import evaluate_anxiety
 
@@ -24,7 +24,7 @@ DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
     "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor"},
 }
 
-# In-memory storage for audio bytes and processed message events
+# In-memory storage for audio bytes and safe message events for the bedside station
 _audio_store: Dict[str, bytes] = {}
 _recent_events: deque = deque(maxlen=50)
 
@@ -35,14 +35,14 @@ def get_stored_audio(audio_id: str) -> Optional[bytes]:
 
 
 def get_recent_events(limit: int = 15) -> List[Dict[str, Any]]:
-    """Retrieve the most recent processed Anchor events."""
+    """Retrieve recent safe processed Anchor events for the bedside display."""
     events = list(_recent_events)
     events.reverse()
     return events[:limit]
 
 
 def get_latest_event() -> Optional[Dict[str, Any]]:
-    """Retrieve the single most recent processed event."""
+    """Retrieve the single most recent safe event."""
     return _recent_events[-1] if _recent_events else None
 
 
@@ -69,7 +69,7 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
 
     data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
 
-    # 1. Extract message body / raw text (supports Twilio 'Body', Photon 'text'/'body')
+    # 1. Extract message body / raw text
     raw_message = ""
     if "raw_message" in data and isinstance(data["raw_message"], str):
         raw_message = data["raw_message"]
@@ -85,7 +85,7 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
     elif isinstance(data.get("message"), str):
         raw_message = data["message"]
 
-    # 2. Extract sender info (supports Twilio 'From', Photon 'sender')
+    # 2. Extract sender info
     sender_raw = data.get("sender") or data.get("from") or data.get("From") or data.get("author") or {}
     metadata = data.get("metadata") or {}
 
@@ -133,11 +133,11 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
     # Format phone number for readability if sender has no explicit name
     if not sender_name or sender_name == sender_handle:
         if sender_handle.startswith("+") and len(sender_handle) >= 10:
-            sender_name = f"Family Member ({sender_handle[-4:]})"
+            sender_name = f"Phone ({sender_handle})"
             if not relationship:
-                relationship = "Family Member"
+                relationship = "Unknown Contact"
         else:
-            sender_name = sender_handle or "A family member"
+            sender_name = sender_handle or "Unknown Contact"
 
     if not relationship:
         relationship = "Family Member"
@@ -153,24 +153,46 @@ def generate_caregiver_reply(
     biometrics: Dict[str, Any],
     audio_generated: bool,
 ) -> str:
-    """
-    Constructs an empathetic, clinical status confirmation sent back to the family
-    member or caregiver who texted Rachel.
-    """
-    patient_name = os.getenv("PATIENT_NAME", "Rachel")
+    """Constructs a comforting biometric confirmation sent back to family members."""
+    patient_name = os.getenv("PATIENT_NAME", "Eleanor")
     hr = biometrics.get("heart_rate", 74.0)
 
     if anxiety_detected:
-        intervention = "A soothing voice reminder was played at her bedside." if audio_generated else "A high-visibility visual grounding card was displayed."
+        intervention = "A soothing voice reminder was played at her bedside." if audio_generated else "A visual grounding card was displayed."
         return (
             f"Anchor Caregiver Update: We delivered and grounded your message for {patient_name}. "
-            f"Current vitals show elevated agitation (Heart Rate: {int(hr)} BPM). {intervention}"
+            f"Current vitals show agitation (Heart Rate: {int(hr)} BPM). {intervention}"
         )
     else:
         return (
             f"Anchor Caregiver Update: Your message was grounded and delivered to {patient_name}'s bedside screen. "
-            f"Her vitals are currently calm and stable (Heart Rate: {int(hr)} BPM)."
+            f"Her vitals are calm and stable (Heart Rate: {int(hr)} BPM)."
         )
+
+
+def generate_malicious_caregiver_warning(
+    sender_name: str,
+    sender_handle: str,
+    raw_message: str,
+    malicious_reason: str,
+) -> str:
+    """
+    Constructs a high-priority warning alert for caregivers containing:
+    1. The message contents
+    2. Who it is from (phone number if no contact info)
+    3. Exactly why it was flagged as malicious
+    """
+    sender_identifier = sender_handle if sender_handle else sender_name
+    if not sender_identifier or sender_identifier == "Unknown Contact":
+        sender_identifier = "Unknown Phone Number"
+
+    return (
+        f"🚨 ANCHOR SHIELD ALERT: Malicious message intercepted and blocked from Eleanor.\n"
+        f"• From: {sender_identifier}\n"
+        f"• Message Content: \"{raw_message}\"\n"
+        f"• Flagged Reason: {malicious_reason}\n"
+        f"• Action Taken: Suppressed from Eleanor's bedside station. She was not alarmed."
+    )
 
 
 async def process_photon_message(
@@ -178,31 +200,74 @@ async def process_photon_message(
 ) -> Dict[str, Any]:
     """
     Full pipeline:
-    1. Parse incoming message and sender details (Photon, Spectrum, or Twilio SMS).
-    2. Ground message via Gemini into patient context.
-    3. Evaluate patient anxiety state via Presage biometric emotional sensing.
-    4. Gate ElevenLabs TTS: trigger voice generation only if anxiety is detected.
-    5. Generate a caregiver auto-reply confirming message delivery and biometric state.
-    6. Cache event for the Bedside Tablet display.
+    1. Parse incoming message and sender details.
+    2. Scan for malicious / scam behavior via Gemini & security heuristics.
+    3. If malicious:
+       - BLOCK message from Eleanor's bedside tablet.
+       - SUPPRESS voice audio generation.
+       - Dispatch immediate warning alert to caregivers.
+    4. If safe:
+       - Ground message via Gemini for Eleanor.
+       - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
+       - Post safe grounded card to Eleanor's tablet queue.
     """
     sender_name, relationship, raw_message, sender_handle = parse_photon_payload(payload)
     print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Msg='{raw_message}'")
 
     # Evaluate Presage anxiety state
     anxiety_detected, anxiety_score, biometrics = evaluate_anxiety(payload)
-    print(f"[Anchor Presage] Anxiety Detected: {anxiety_detected} (Score: {anxiety_score:.2f})")
 
-    # Determine whether audio should be generated (force override or anxiety-gated)
-    should_generate_audio = anxiety_detected if force_audio is None else force_audio
-
-    print("[Anchor Pipeline] Calling Gemini for grounding...")
-    grounded_message = await generate_grounding_message(
+    # Scan for malicious content and generate grounding
+    print("[Anchor Pipeline] Calling Gemini cognitive security & grounding scan...")
+    analysis = await analyze_and_ground_message(
         sender_name=sender_name,
         relationship=relationship,
         raw_message=raw_message,
+        sender_handle=sender_handle,
     )
+
+    is_malicious = bool(analysis.get("is_malicious", False))
+    malicious_reason = str(analysis.get("malicious_reason", "")).strip()
+
+    # MALICIOUS MESSAGE INTERVENTION BRANCH
+    if is_malicious:
+        print(f"[Anchor SHIELD]: Intercepted malicious message! Reason: {malicious_reason}")
+        print("[Anchor SHIELD]: Suppressing patient tablet display & voice audio.")
+
+        caregiver_warning = generate_malicious_caregiver_warning(
+            sender_name=sender_name,
+            sender_handle=sender_handle,
+            raw_message=raw_message,
+            malicious_reason=malicious_reason or "Suspicious predatory or extortion content detected.",
+        )
+
+        # Do NOT append to _recent_events so Eleanor's bedside screen remains unaffected
+        result_event = {
+            "event_id": str(uuid.uuid4()),
+            "timestamp": time.time(),
+            "sender_name": sender_name,
+            "relationship": relationship,
+            "sender_handle": sender_handle,
+            "raw_message": raw_message,
+            "grounded_message": "🛡️ Message shielded by Anchor Scam Defense.",
+            "caregiver_reply": caregiver_warning,
+            "anxiety_detected": anxiety_detected,
+            "anxiety_score": anxiety_score,
+            "biometrics": biometrics,
+            "audio_generated": False,
+            "audio_id": None,
+            "audio_url": None,
+            "is_malicious": True,
+            "malicious_reason": malicious_reason or "Predatory or emergency financial scam detected.",
+            "blocked_from_patient": True,
+        }
+        return result_event
+
+    # SAFE MESSAGE BRANCH
+    grounded_message = str(analysis.get("grounded_message", "")).strip()
     print(f"[Anchor Pipeline] Grounded text: '{grounded_message}'")
 
+    should_generate_audio = anxiety_detected if force_audio is None else force_audio
     audio_generated = False
     audio_id = None
     audio_url = None
@@ -227,7 +292,6 @@ async def process_photon_message(
     else:
         print("[Anchor Pipeline] Patient state is calm. Voice synthesis gated off.")
 
-    # Build Caregiver reassurance SMS confirmation
     caregiver_reply = generate_caregiver_reply(
         sender_name=sender_name,
         anxiety_detected=anxiety_detected,
@@ -250,7 +314,11 @@ async def process_photon_message(
         "audio_generated": audio_generated,
         "audio_id": audio_id,
         "audio_url": audio_url,
+        "is_malicious": False,
+        "malicious_reason": None,
+        "blocked_from_patient": False,
     }
 
+    # Only safe, grounded events are posted to Eleanor's tablet stream
     _recent_events.append(result_event)
     return result_event

@@ -71,6 +71,9 @@ class IMessageWebhookResponse(BaseModel):
     audio_generated: bool = Field(..., description="Indicates whether ElevenLabs speech audio was triggered")
     audio_id: Optional[str] = Field(None, description="Unique ID for retrieving generated audio")
     audio_url: Optional[str] = Field(None, description="Relative URL to stream the audio MP3")
+    is_malicious: bool = Field(False, description="Whether message was flagged as malicious or predatory scam")
+    malicious_reason: Optional[str] = Field(None, description="Reason message was flagged as malicious")
+    blocked_from_patient: bool = Field(False, description="Whether message was blocked from Eleanor's bedside station")
 
 
 class PresageTelemetryRequest(BaseModel):
@@ -149,9 +152,9 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
 
     print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
 
-    # If incoming via Twilio SMS, return TwiML XML so the sender gets an immediate text reply
+    # If incoming via Twilio SMS, return TwiML XML so the sender/caregiver gets an immediate text reply
     if is_form and ("From" in payload or "AccountSid" in payload):
-        caregiver_msg = result.get("caregiver_reply", "Anchor: Message delivered and grounded.")
+        caregiver_msg = result.get("caregiver_reply", "Anchor: Message processed.")
         twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Message>{caregiver_msg}</Message>
@@ -178,7 +181,7 @@ async def get_tunnel_url(request: Request):
 
 @app.post("/webhook/imessage")
 async def handle_imessage_webhook(request: Request):
-    """Handles incoming iMessage or SMS webhooks with Presage anxiety-gated voice generation."""
+    """Handles incoming iMessage or SMS webhooks with scam protection and Presage-gated voice generation."""
     return await _process_incoming_webhook(request, source="iMessage")
 
 
@@ -211,13 +214,13 @@ async def get_presage_telemetry():
 
 @app.get("/api/events")
 async def list_recent_events():
-    """Returns recent message grounding events for the demo surface."""
+    """Returns recent safe message grounding events for the bedside station."""
     return {"events": get_recent_events()}
 
 
 @app.get("/api/events/latest")
 async def get_most_recent_event():
-    """Returns the single latest event."""
+    """Returns the single latest safe event."""
     return {"event": get_latest_event()}
 
 

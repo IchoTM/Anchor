@@ -259,6 +259,12 @@
       border-left: 3.5px solid #f43f5e;
     }
 
+    .telemetry-receipt-card.malicious {
+      border-left: 3.5px solid #f43f5e;
+      background: rgba(45, 15, 22, 0.95);
+      border-color: rgba(244, 63, 94, 0.3);
+    }
+
     .telemetry-header {
       display: flex;
       justify-content: space-between;
@@ -295,6 +301,12 @@
       background: rgba(148, 163, 184, 0.14);
       color: #cbd5e1;
       border: 0.5px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .delivery-pill.blocked {
+      background: rgba(244, 63, 94, 0.2);
+      color: #fb7185;
+      border: 0.5px solid rgba(244, 63, 94, 0.4);
     }
 
     /* Raw Biometric Vitals Strip */
@@ -633,7 +645,7 @@
     </div>
     <div class="connection-badge">
       <div class="connection-dot"></div>
-      <span>Anchor Active</span>
+      <span>Anchor Shield Active</span>
     </div>
   </div>
 
@@ -641,7 +653,7 @@
   <div class="chat-scroll" id="chatStream">
     <div class="imessage-stamp">Today 10:42 AM</div>
     <div class="imessage-secure-notice">
-      iMessage • Grounded by Anchor AI &amp; Presage Biometrics
+      iMessage • Grounded by Anchor AI &amp; Scam Protection Active
     </div>
   </div>
 
@@ -650,7 +662,7 @@
     <button type="button" class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
     <button type="button" class="preset-pill" onclick="fillScenario('Did you take your morning pills? Call me.')">💊 Pill Check</button>
     <button type="button" class="preset-pill" onclick="fillScenario('I left your reading glasses on the nightstand.')">👓 Lost Item</button>
-    <button type="button" class="preset-pill" onclick="fillScenario('Dr. Chen appointment is confirmed for 3:00 PM today.')">📅 Doctor</button>
+    <button type="button" class="preset-pill" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onclick="fillScenario('Grandma, I got arrested in Mexico and need $2,000 bail money right now. Wire it immediately and do not tell mom!')">🚨 Bail Scam</button>
   </div>
 
   <!-- iOS Composer Bar -->
@@ -690,7 +702,7 @@
         <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('David', 'Son')">David (Son)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor')">Dr. Chen</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('+1 (555) 019-2834', 'Unknown')">Unknown (+1 555-0199)</button>
       </div>
 
       <button type="button" class="btn-save-identity" onclick="saveIdentity()">Done</button>
@@ -701,13 +713,11 @@
     let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
 
-    // Dynamic viewport keyboard handling
     function syncViewport() {
       if (window.visualViewport) {
         const vh = window.visualViewport.height;
         document.documentElement.style.setProperty('--app-height', `${vh}px`);
 
-        // If virtual keyboard is open (viewport height shrunk significantly)
         const isKeyboardOpen = window.visualViewport.height < (window.innerHeight - 80);
         const composer = document.querySelector('.composer');
         if (composer) {
@@ -802,7 +812,6 @@
       const chatStream = document.getElementById('chatStream');
       const sendBtn = document.getElementById('sendArrowBtn');
 
-      // Append iOS user bubble
       const bubbleRow = document.createElement('div');
       bubbleRow.className = 'bubble-row';
       bubbleRow.innerHTML = `
@@ -816,7 +825,6 @@
       sendBtn.disabled = true;
 
       try {
-        // Intercept message and concurrently fetch current live biometrics
         const [res, telemetryRes] = await Promise.all([
           fetch('/webhook/imessage', {
             method: 'POST',
@@ -839,9 +847,39 @@
         }
 
         const statusEl = bubbleRow.querySelector('.bubble-status');
-        statusEl.textContent = 'Delivered';
+        statusEl.textContent = data.is_malicious ? 'Blocked by Shield' : 'Delivered';
 
-        // Extract raw biometric values (Heart Rate & Respiration)
+        // MALICIOUS WARNING ALERT CARD FOR CAREGIVER
+        if (data.is_malicious || data.blocked_from_patient) {
+          const warningCard = document.createElement('div');
+          warningCard.className = 'telemetry-receipt-card malicious';
+          const senderInfo = data.sender_handle || currentSender || "Unknown Phone Number";
+
+          warningCard.innerHTML = `
+            <div class="telemetry-header">
+              <div class="telemetry-title" style="color: #fb7185;">
+                <span>🛡️ ANCHOR SHIELD ALERT</span>
+              </div>
+              <span class="delivery-pill blocked">Blocked from Eleanor</span>
+            </div>
+            <div style="font-size: 13px; font-weight: 600; color: #fff;">
+              Predatory or Scam Content Intercepted
+            </div>
+            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.45; background: rgba(0,0,0,0.3); padding: 9px 11px; border-radius: 10px;">
+              <div><strong>From:</strong> ${escapeHtml(senderInfo)}</div>
+              <div style="margin-top: 3px;"><strong>Message:</strong> "${escapeHtml(data.raw_message)}"</div>
+              <div style="margin-top: 3px;"><strong>Why Flagged:</strong> <span style="color: #fda4af;">${escapeHtml(data.malicious_reason || "Emergency financial extortion / Grandparent Scam pattern")}</span></div>
+            </div>
+            <div class="card-clinical-note" style="color: #34d399;">
+              <span>🛡️ Action: This message was blocked from Eleanor's tablet and silence was maintained.</span>
+            </div>
+          `;
+          chatStream.appendChild(warningCard);
+          chatStream.scrollTop = chatStream.scrollHeight;
+          return;
+        }
+
+        // SAFE GROUNDED MESSAGE RECEIPT CARD
         const isPanic = Boolean(data.anxiety_detected);
         const anxietyScore = data.anxiety_score || 0;
 
@@ -856,7 +894,6 @@
           brpm = Math.round(15 + (anxietyScore * 10));
         }
 
-        // Build clinical telemetry feedback card
         const responseCard = document.createElement('div');
         responseCard.className = `telemetry-receipt-card ${isPanic ? 'panic' : 'calm'}`;
 
