@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from services.photon_service import (
@@ -26,7 +27,14 @@ app = FastAPI(
     version="0.1.0",
 )
 
-TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = BASE_DIR / "static"
+
+# Ensure static folder exists and mount it for contact avatars & media
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 _caregiver_alerts: deque = deque(maxlen=50)
 
 
@@ -51,6 +59,7 @@ class IMessageWebhookRequest(BaseModel):
     sender_name: Optional[str] = Field(None, description="Name of the sender")
     relationship: Optional[str] = Field(None, description="Relationship to recipient")
     raw_message: Optional[str] = Field(None, description="Incoming message text")
+    sender_photo_url: Optional[str] = Field(None, description="URL or static path to sender avatar photo")
     anxiety_detected: Optional[bool] = Field(None, description="Presage anxiety detection flag")
     anxiety_score: Optional[float] = Field(None, description="Presage anxiety score from 0.0 to 1.0")
     presage: Optional[Dict[str, Any]] = Field(None, description="Presage biometric telemetry payload")
@@ -73,6 +82,7 @@ class IMessageWebhookResponse(BaseModel):
     audio_generated: bool = Field(..., description="Indicates whether ElevenLabs speech audio was triggered")
     audio_id: Optional[str] = Field(None, description="Unique ID for retrieving generated audio")
     audio_url: Optional[str] = Field(None, description="Relative URL to stream the audio MP3")
+    sender_photo_url: Optional[str] = Field(None, description="URL or static path to contact avatar photo")
     is_malicious: bool = Field(False, description="Whether message was flagged as malicious or predatory scam")
     malicious_reason: Optional[str] = Field(None, description="Reason message was flagged as malicious")
     blocked_from_patient: bool = Field(False, description="Whether message was blocked from Eleanor's bedside station")

@@ -306,13 +306,32 @@
     .sender-profile {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 22px;
+    }
+
+    /* Multimodal Contact Avatar / Photo Container */
+    .sender-avatar-wrapper {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      flex-shrink: 0;
+    }
+
+    .sender-photo {
+      width: 78px;
+      height: 78px;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 3px solid #7dd3fc;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      display: block;
+      background: #0369a1;
     }
 
     .sender-monogram {
-      width: 72px;
-      height: 72px;
-      border-radius: 18px;
+      width: 78px;
+      height: 78px;
+      border-radius: 20px;
       background: #0369a1;
       border: 2.5px solid #7dd3fc;
       display: grid;
@@ -669,7 +688,10 @@
     <article class="message-stage-card" id="messageStageCard" aria-live="polite">
       <div class="message-sender-header">
         <div class="sender-profile">
-          <div class="sender-monogram" id="senderMonogram">--</div>
+          <div class="sender-avatar-wrapper">
+            <img id="senderPhoto" class="sender-photo" src="" alt="Contact Photo" style="display: none;" onerror="this.style.display='none'; document.getElementById('senderMonogram').style.display='grid';">
+            <div class="sender-monogram" id="senderMonogram">--</div>
+          </div>
           <div class="sender-details">
             <h2 id="senderNameDisplay">Sender</h2>
             <span class="sender-relationship-badge" id="relationshipDisplay">Family</span>
@@ -975,8 +997,21 @@
       const ambient = document.getElementById('ambientClockView');
       const recallBtn = document.getElementById('btnRecallMessage');
 
+      // Update multimodal contact visual: image photo with monogram fallback
+      const photoEl = document.getElementById('senderPhoto');
+      const monogramEl = document.getElementById('senderMonogram');
+
+      if (data.sender_photo_url) {
+        photoEl.src = data.sender_photo_url;
+        photoEl.style.display = 'block';
+        monogramEl.style.display = 'none';
+      } else {
+        photoEl.style.display = 'none';
+        monogramEl.style.display = 'grid';
+        monogramEl.textContent = getMonogram(data.sender_name);
+      }
+
       // Update contents
-      document.getElementById('senderMonogram').textContent = getMonogram(data.sender_name);
       document.getElementById('senderNameDisplay').textContent = data.sender_name;
       document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
       document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;

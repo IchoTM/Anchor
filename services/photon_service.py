@@ -14,14 +14,24 @@ from services.presage_service import evaluate_anxiety
 load_dotenv(find_dotenv(), override=True)
 
 DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
-    "+15551234567": {"name": "Alex", "relationship": "Grandson"},
-    "+15550192": {"name": "Grandpa", "relationship": "Husband"},
-    "Alex": {"name": "Alex", "relationship": "Grandson"},
-    "Sarah": {"name": "Sarah", "relationship": "Daughter"},
-    "David": {"name": "David", "relationship": "Son"},
-    "Maria": {"name": "Maria", "relationship": "Caregiver"},
-    "Grandpa": {"name": "Grandpa", "relationship": "Husband"},
-    "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor"},
+    "+15551234567": {"name": "Alex", "relationship": "Grandson", "photo_url": "/static/avatars/alex.jpg"},
+    "+15550192": {"name": "Grandpa", "relationship": "Husband", "photo_url": "/static/avatars/grandpa.jpg"},
+    "Alex": {"name": "Alex", "relationship": "Grandson", "photo_url": "/static/avatars/alex.jpg"},
+    "Sarah": {"name": "Sarah", "relationship": "Daughter", "photo_url": "/static/avatars/sarah.jpg"},
+    "David": {"name": "David", "relationship": "Son", "photo_url": "/static/avatars/david.jpg"},
+    "Maria": {"name": "Maria", "relationship": "Caregiver", "photo_url": "/static/avatars/maria.jpg"},
+    "Grandpa": {"name": "Grandpa", "relationship": "Husband", "photo_url": "/static/avatars/grandpa.jpg"},
+    "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor", "photo_url": "/static/avatars/chen.jpg"},
+}
+
+# Heuristic name patterns mapped to photo files in /static/avatars/
+AVATAR_NAME_PATTERNS: Dict[str, str] = {
+    "alex": "/static/avatars/alex.jpg",
+    "sarah": "/static/avatars/sarah.jpg",
+    "david": "/static/avatars/david.jpg",
+    "maria": "/static/avatars/maria.jpg",
+    "grandpa": "/static/avatars/grandpa.jpg",
+    "chen": "/static/avatars/chen.jpg",
 }
 
 # In-memory storage for audio bytes and safe message events for the bedside station
@@ -60,10 +70,47 @@ def get_contact_directory() -> Dict[str, Dict[str, str]]:
     return contacts
 
 
-def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
+def resolve_contact_photo(
+    sender_name: str,
+    sender_handle: str,
+    explicit_photo_url: Optional[str] = None,
+) -> Optional[str]:
     """
-    Extracts (sender_name, relationship, raw_message, sender_handle) from various
-    Photon / Spectrum / Twilio / SMS webhook payload structures.
+    Resolves the avatar image URL for a sender using explicit payload values,
+    the contact directory, or name pattern matching.
+    """
+    if explicit_photo_url and explicit_photo_url.strip():
+        return explicit_photo_url.strip()
+
+    contacts = get_contact_directory()
+
+    # 1. Direct handle or name lookup in directory
+    if sender_handle in contacts and contacts[sender_handle].get("photo_url"):
+        return contacts[sender_handle]["photo_url"]
+    if sender_name in contacts and contacts[sender_name].get("photo_url"):
+        return contacts[sender_name]["photo_url"]
+
+    # 2. Case-insensitive key lookup in directory
+    sender_lower = (sender_name or "").lower().strip()
+    handle_lower = (sender_handle or "").lower().strip()
+
+    for key, info in contacts.items():
+        if key.lower() in (sender_lower, handle_lower):
+            if info.get("photo_url"):
+                return info["photo_url"]
+
+    # 3. Pattern match against known presets (e.g. "chen" -> chen.jpg)
+    for pattern, path in AVATAR_NAME_PATTERNS.items():
+        if pattern in sender_lower or pattern in handle_lower:
+            return path
+
+    return None
+
+
+def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, Optional[str]]:
+    """
+    Extracts (sender_name, relationship, raw_message, sender_handle, sender_photo_url)
+    from various Photon / Spectrum / Twilio / SMS webhook payload structures.
     """
     contacts = get_contact_directory()
 
@@ -92,6 +139,11 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
     sender_name = ""
     sender_handle = ""
     relationship = ""
+    explicit_photo = (
+        data.get("sender_photo_url")
+        or data.get("photo_url")
+        or data.get("avatar_url")
+    )
 
     if isinstance(sender_raw, dict):
         sender_name = sender_raw.get("name") or sender_raw.get("display_name") or ""
@@ -103,6 +155,8 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
             or ""
         )
         relationship = sender_raw.get("relationship") or ""
+        if not explicit_photo:
+            explicit_photo = sender_raw.get("photo_url") or sender_raw.get("avatar") or sender_raw.get("image")
     elif isinstance(sender_raw, str):
         sender_name = sender_raw
         sender_handle = sender_raw
@@ -144,7 +198,14 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str]:
     if not raw_message:
         raw_message = "(No text content)"
 
-    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip()
+    # Resolve sender photo URL
+    sender_photo_url = resolve_contact_photo(
+        sender_name=sender_name,
+        sender_handle=sender_handle,
+        explicit_photo_url=explicit_photo,
+    )
+
+    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip(), sender_photo_url
 
 
 def generate_caregiver_reply(
@@ -200,7 +261,7 @@ async def process_photon_message(
 ) -> Dict[str, Any]:
     """
     Full pipeline:
-    1. Parse incoming message and sender details.
+    1. Parse incoming message, sender details, and multimodal contact photo.
     2. Scan for malicious / scam behavior via Gemini & security heuristics.
     3. If malicious:
        - BLOCK message from Eleanor's bedside tablet.
@@ -209,10 +270,10 @@ async def process_photon_message(
     4. If safe:
        - Ground message via Gemini for Eleanor.
        - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
-       - Post safe grounded card to Eleanor's tablet queue.
+       - Post safe grounded card with contact photo to Eleanor's tablet queue.
     """
-    sender_name, relationship, raw_message, sender_handle = parse_photon_payload(payload)
-    print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Msg='{raw_message}'")
+    sender_name, relationship, raw_message, sender_handle, sender_photo_url = parse_photon_payload(payload)
+    print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Photo='{sender_photo_url}', Msg='{raw_message}'")
 
     # Evaluate Presage anxiety state
     anxiety_detected, anxiety_score, biometrics = evaluate_anxiety(payload)
@@ -248,6 +309,7 @@ async def process_photon_message(
             "sender_name": sender_name,
             "relationship": relationship,
             "sender_handle": sender_handle,
+            "sender_photo_url": sender_photo_url,
             "raw_message": raw_message,
             "grounded_message": "🛡️ Message shielded by Anchor Scam Defense.",
             "caregiver_reply": caregiver_warning,
@@ -305,6 +367,7 @@ async def process_photon_message(
         "sender_name": sender_name,
         "relationship": relationship,
         "sender_handle": sender_handle,
+        "sender_photo_url": sender_photo_url,
         "raw_message": raw_message,
         "grounded_message": grounded_message,
         "caregiver_reply": caregiver_reply,

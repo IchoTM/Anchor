@@ -478,7 +478,8 @@
         } else {
           alertEl.className = 'result-alert success';
           const audioMsg = data.audio_generated ? '🎙️ Spoken Aloud to Eleanor' : '👁️ Screen Display Only';
-          alertEl.innerHTML = `<strong>✓ DELIVERED:</strong> ${audioMsg}<br>"${data.grounded_message}"`;
+          const photoThumb = data.sender_photo_url ? `<img src="${data.sender_photo_url}" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-right:8px;border:1px solid rgba(255,255,255,0.2);">` : '';
+          alertEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">${photoThumb}<strong>✓ DELIVERED:</strong> ${audioMsg}</div>"${data.grounded_message}"`;
         }
       } catch (err) {
         alert("Failed to send message: " + err);
