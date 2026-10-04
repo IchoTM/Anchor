@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Messages • Grandma Eleanor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -14,9 +14,10 @@
       --app-height: 100dvh;
       --ios-blue: #007aff;
       --ios-bubble-blue: linear-gradient(180deg, #0a84ff 0%, #007aff 100%);
+      --ios-bubble-gray: #26252a;
+      --ios-bubble-gray-border: rgba(255, 255, 255, 0.08);
       --ios-gray-bg: #1c1c1e;
       --ios-field-bg: #2c2c2e;
-      --ios-border: rgba(255, 255, 255, 0.14);
       --ios-secondary: #8e8e93;
     }
 
@@ -138,7 +139,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       -webkit-overflow-scrolling: touch;
     }
 
@@ -155,18 +156,19 @@
       text-align: center;
       color: #636366;
       font-size: 10.5px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       line-height: 1.35;
     }
 
-    .bubble-row {
+    /* Outgoing Blue iMessage Bubble */
+    .bubble-row-outgoing {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 3px;
     }
 
-    .imessage-bubble {
+    .imessage-bubble-blue {
       background: var(--ios-bubble-blue);
       color: #ffffff;
       padding: 9px 15px;
@@ -186,19 +188,39 @@
       font-weight: 400;
     }
 
-    /* Apple Health / CareKit Telemetry Receipt Card */
-    .telemetry-receipt-card {
-      align-self: flex-start;
-      background: rgba(28, 28, 30, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      padding: 12px 14px;
-      max-width: 92%;
+    /* Incoming Gray iMessage Bubble (from Eleanor) */
+    .bubble-row-incoming {
       display: flex;
       flex-direction: column;
-      gap: 9px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
-      animation: fadeIn 0.25s ease-out;
+      align-items: flex-start;
+      gap: 3px;
+      max-width: 82%;
+    }
+
+    .imessage-bubble-gray {
+      background: var(--ios-bubble-gray);
+      border: 0.5px solid var(--ios-bubble-gray-border);
+      color: #ffffff;
+      padding: 9px 14px;
+      border-radius: 19px 19px 19px 4px;
+      font-size: 15px;
+      line-height: 1.34;
+      word-wrap: break-word;
+      letter-spacing: -0.01em;
+    }
+
+    /* Apple Health / CareKit Interactive iMessage Attachment */
+    .carekit-attachment {
+      align-self: flex-start;
+      background: #1c1c1e;
+      border: 0.5px solid #38383a;
+      border-radius: 18px;
+      max-width: 86%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+      animation: fadeIn 0.2s ease-out;
     }
 
     @keyframes fadeIn {
@@ -206,113 +228,122 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .telemetry-receipt-card.calm {
-      border-left: 3.5px solid #10b981;
-    }
-
-    .telemetry-receipt-card.panic {
-      border-left: 3.5px solid #f43f5e;
-    }
-
-    .telemetry-receipt-card.malicious {
-      border-left: 3.5px solid #f43f5e;
-      background: rgba(45, 15, 22, 0.95);
-      border-color: rgba(244, 63, 94, 0.35);
-    }
-
-    .telemetry-header {
+    .carekit-header {
+      background: #252528;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 7px;
     }
 
-    .telemetry-title {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #9ca3af;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .delivery-pill {
-      font-size: 10.5px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 999px;
-    }
-
-    .delivery-pill.spoken {
-      background: rgba(56, 189, 248, 0.16);
-      color: #38bdf8;
-      border: 0.5px solid rgba(56, 189, 248, 0.3);
-    }
-
-    .delivery-pill.visual {
-      background: rgba(148, 163, 184, 0.14);
-      color: #cbd5e1;
-      border: 0.5px solid rgba(148, 163, 184, 0.25);
-    }
-
-    .delivery-pill.blocked {
-      background: rgba(244, 63, 94, 0.2);
-      color: #fb7185;
-      border: 0.5px solid rgba(244, 63, 94, 0.4);
-    }
-
-    /* Raw Biometric Vitals Strip */
-    .vitals-strip {
+    .carekit-header-left {
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
+      font-size: 10px;
+      font-weight: 700;
+      color: #98989d;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
-    .vital-badge {
-      display: inline-flex;
+    .carekit-header-left svg {
+      width: 13px;
+      height: 13px;
+      fill: #ff2d55;
+    }
+
+    .carekit-chevron {
+      color: var(--ios-secondary);
+      font-size: 12px;
+    }
+
+    .carekit-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .carekit-vitals-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f2f2f7;
+    }
+
+    .carekit-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34c759;
+    }
+
+    .carekit-status-dot.agitated {
+      background: #ff3b30;
+      box-shadow: 0 0 6px #ff3b30;
+    }
+
+    .carekit-grounded-preview {
+      font-size: 13px;
+      color: #d1d1d6;
+      line-height: 1.38;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 8px 10px;
+      border-radius: 10px;
+      border-left: 2.5px solid #007aff;
+    }
+
+    .carekit-footer-subtext {
+      font-size: 11px;
+      color: #8e8e93;
+      display: flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 8px;
-      border-radius: 8px;
+    }
+
+    /* Native Apple Message Filter / Spam Shield Notice */
+    .ios-shield-notice {
+      align-self: center;
+      max-width: 90%;
+      background: rgba(28, 28, 30, 0.92);
+      border: 0.5px solid rgba(255, 69, 58, 0.35);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .shield-notice-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ff453a;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .shield-notice-body {
       font-size: 12px;
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .vital-badge.vital-calm {
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.3);
-      background: rgba(16, 185, 129, 0.12);
-    }
-
-    .vital-badge.vital-panic {
-      color: #fb7185;
-      border-color: rgba(244, 63, 94, 0.3);
-      background: rgba(244, 63, 94, 0.12);
-    }
-
-    .card-grounded-quote {
-      font-size: 13.5px;
-      color: #f3f4f6;
+      color: #e5e5ea;
       line-height: 1.4;
       background: rgba(0, 0, 0, 0.25);
-      padding: 9px 11px;
-      border-radius: 10px;
-      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 10px;
+      border-radius: 8px;
     }
 
-    .card-clinical-note {
+    .shield-notice-footer {
       font-size: 11px;
-      color: #9ca3af;
-      line-height: 1.35;
+      color: #34c759;
       display: flex;
-      align-items: flex-start;
-      gap: 5px;
+      align-items: center;
+      gap: 4px;
     }
 
     /* Keyboard Accessory Scenario Chips - Hidden until input is active */
@@ -592,7 +623,7 @@
     <div class="header-center" onclick="openIdentityModal()">
       <div class="contact-avatar">👵</div>
       <div class="contact-name-row">
-        <span class="contact-name">Grandma Eleanor</span>
+        <span class="contact-name" id="contactHeaderName">Grandma Eleanor</span>
         <span class="contact-chevron">›</span>
       </div>
     </div>
@@ -666,14 +697,12 @@
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
     let lastHandledAlertId = null;
 
-    // Checks whether current user is an authorized family member or caregiver
     function isFamilyOrCaregiver() {
       const rel = (currentRelationship || "").toLowerCase();
       const sender = (currentSender || "").toLowerCase();
       return !rel.includes('unknown') && !sender.includes('unknown');
     }
 
-    // Clears chat stream and starts fresh conversation thread for the active persona
     function resetChatStreamForCurrentPersona() {
       const chatStream = document.getElementById('chatStream');
       if (!chatStream) return;
@@ -682,7 +711,7 @@
         <div class="imessage-stamp">Today 10:42 AM</div>
         <div class="imessage-secure-notice">
           ${isFamilyOrCaregiver() 
-            ? 'iMessage • Grounded by Anchor AI &amp; Family Security Shield Active' 
+            ? 'iMessage • Anchor CareKit &amp; Security Shield Active' 
             : 'iMessage with Eleanor'}
         </div>
       `;
@@ -717,7 +746,6 @@
     const messageInput = document.getElementById('messageInput');
     const scenariosTray = document.getElementById('scenariosTray');
 
-    // Show quick scenarios drawer ONLY when the message input is active
     messageInput.addEventListener('focus', () => {
       if (scenariosTray) scenariosTray.classList.add('open');
       setTimeout(() => {
@@ -728,7 +756,6 @@
     });
 
     messageInput.addEventListener('blur', () => {
-      // Delay closing slightly so clicking preset pill fires first
       setTimeout(() => {
         if (document.activeElement !== messageInput && scenariosTray) {
           scenariosTray.classList.remove('open');
@@ -790,33 +817,28 @@
       input.focus();
     }
 
-    // Renders the Anchor Shield Alert for authorized family and caregivers
+    // Native Apple iOS Spam / Security Warning Filter Pattern
     function renderMaliciousWarningCard(data) {
       const chatStream = document.getElementById('chatStream');
-      const warningCard = document.createElement('div');
-      warningCard.className = 'telemetry-receipt-card malicious';
       const senderInfo = data.sender_handle || data.sender_name || "Unknown Sender";
 
-      warningCard.innerHTML = `
-        <div class="telemetry-header">
-          <div class="telemetry-title" style="color: #fb7185;">
-            <span>🛡️ ANCHOR SHIELD ALERT</span>
-          </div>
-          <span class="delivery-pill blocked">Blocked from Eleanor</span>
+      const warningNotice = document.createElement('div');
+      warningNotice.className = 'ios-shield-notice';
+      warningNotice.innerHTML = `
+        <div class="shield-notice-header">
+          <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg>
+          <span>Security Alert • High-Risk Scam Blocked</span>
         </div>
-        <div style="font-size: 13px; font-weight: 600; color: #fff;">
-          Predatory or Scam Content Intercepted
+        <div class="shield-notice-body">
+          <div style="font-weight:600;margin-bottom:2px;">From: ${escapeHtml(senderInfo)}</div>
+          <div style="color:#d1d1d6;margin-bottom:4px;">"${escapeHtml(data.raw_message)}"</div>
+          <div style="font-size:11px;color:#ff9f0a;">Reason: ${escapeHtml(data.malicious_reason || "Emergency extortion / Grandparent scam pattern")}</div>
         </div>
-        <div style="font-size: 12px; color: #e2e8f0; line-height: 1.45; background: rgba(0,0,0,0.3); padding: 9px 11px; border-radius: 10px;">
-          <div><strong>From:</strong> ${escapeHtml(senderInfo)}</div>
-          <div style="margin-top: 3px;"><strong>Message:</strong> "${escapeHtml(data.raw_message)}"</div>
-          <div style="margin-top: 3px;"><strong>Why Flagged:</strong> <span style="color: #fda4af;">${escapeHtml(data.malicious_reason || "Emergency financial extortion / Grandparent Scam pattern")}</span></div>
-        </div>
-        <div class="card-clinical-note" style="color: #34d399;">
-          <span>🛡️ Action: This message was blocked from Eleanor's tablet and silence was maintained.</span>
+        <div class="shield-notice-footer">
+          <span>✓ Shielded from Eleanor's bedside screen</span>
         </div>
       `;
-      chatStream.appendChild(warningCard);
+      chatStream.appendChild(warningNotice);
       chatStream.scrollTop = chatStream.scrollHeight;
     }
 
@@ -828,13 +850,14 @@
       const chatStream = document.getElementById('chatStream');
       const sendBtn = document.getElementById('sendArrowBtn');
 
-      const bubbleRow = document.createElement('div');
-      bubbleRow.className = 'bubble-row';
-      bubbleRow.innerHTML = `
-        <div class="imessage-bubble">${escapeHtml(text)}</div>
-        <div class="bubble-status">Sending...</div>
+      // 1. Native Sent Blue iMessage Bubble
+      const outgoingRow = document.createElement('div');
+      outgoingRow.className = 'bubble-row-outgoing';
+      outgoingRow.innerHTML = `
+        <div class="imessage-bubble-blue">${escapeHtml(text)}</div>
+        <div class="bubble-status">Delivered</div>
       `;
-      chatStream.appendChild(bubbleRow);
+      chatStream.appendChild(outgoingRow);
       chatStream.scrollTop = chatStream.scrollHeight;
 
       input.value = '';
@@ -862,10 +885,9 @@
           } catch (e) {}
         }
 
-        const statusEl = bubbleRow.querySelector('.bubble-status');
+        const statusEl = outgoingRow.querySelector('.bubble-status');
 
-        // SENDER PRIVACY & SECURITY ROUTING:
-        // A malicious/unknown sender only gets standard "Delivered" and NEVER gets the detection diagnosis!
+        // MALICIOUS INTERCEPTION ROUTING
         if (data.is_malicious || data.blocked_from_patient) {
           statusEl.textContent = 'Delivered';
 
@@ -873,27 +895,18 @@
             lastHandledAlertId = data.event_id;
           }
 
-          // Only authorized family/caregiver personas see the Shield Alert card
           if (isFamilyOrCaregiver()) {
             renderMaliciousWarningCard(data);
           }
           return;
         }
 
-        // SAFE GROUNDED MESSAGE DELIVERY
-        statusEl.textContent = 'Delivered';
-
-        // For non-family unknown senders, don't show internal biometric telemetry cards
-        if (!isFamilyOrCaregiver()) {
-          return;
-        }
-
+        // SAFE GROUNDED INTERACTION
         const isPanic = Boolean(data.anxiety_detected);
         const anxietyScore = data.anxiety_score || 0;
 
         let bpm = 74;
         let brpm = 16;
-
         if (telemetryData && telemetryData.biometrics) {
           bpm = Math.round(telemetryData.biometrics.heart_rate || (isPanic ? 96 : 74));
           brpm = Math.round(telemetryData.biometrics.respiration_rate || (isPanic ? 22 : 16));
@@ -902,52 +915,66 @@
           brpm = Math.round(15 + (anxietyScore * 10));
         }
 
-        const responseCard = document.createElement('div');
-        responseCard.className = `telemetry-receipt-card ${isPanic ? 'panic' : 'calm'}`;
+        // Subtext under sent blue bubble
+        statusEl.textContent = data.audio_generated 
+          ? `Delivered • Spoken aloud to Eleanor (${bpm} BPM)` 
+          : `Delivered quietly to bedside screen`;
 
-        const statusChip = isPanic
-          ? `<span class="vital-badge vital-panic">⚠️ Vitals Agitated</span>`
-          : `<span class="vital-badge vital-calm">🟢 Vitals Stable</span>`;
+        if (!isFamilyOrCaregiver()) {
+          return;
+        }
 
-        const hrChip = `<span class="vital-badge ${isPanic ? 'vital-panic' : ''}">❤️ ${bpm} BPM</span>`;
-        const rrChip = `<span class="vital-badge ${isPanic ? 'vital-panic' : ''}">🫁 ${brpm} BrPM</span>`;
+        // 2. Apple Health / CareKit Interactive iMessage Attachment Card
+        const attachment = document.createElement('div');
+        attachment.className = 'carekit-attachment';
 
-        const deliveryBadge = data.audio_generated
-          ? `<span class="delivery-pill spoken">🎙️ Spoken Aloud</span>`
-          : `<span class="delivery-pill visual">👁️ Bedside Screen</span>`;
+        const dotClass = isPanic ? 'carekit-status-dot agitated' : 'carekit-status-dot';
+        const vitalsLabel = isPanic ? 'Agitation Detected' : 'Vitals Stable';
+        const deliveryLabel = data.audio_generated ? '🎙️ Spoken Aloud' : '👁️ Screen Only';
 
-        const clinicalNote = isPanic
-          ? `<span>🩺 Eleanor's heart rate (${bpm} BPM) and breathing indicated agitation. Anchor spoke aloud in a soothing voice to ground her.</span>`
-          : `<span>💤 Eleanor is resting comfortably (${bpm} BPM). Delivered quietly to her bedside screen without disturbance.</span>`;
-
-        responseCard.innerHTML = `
-          <div class="telemetry-header">
-            <div class="telemetry-title">
-              <span>Anchor Biometrics</span>
+        attachment.innerHTML = `
+          <div class="carekit-header">
+            <div class="carekit-header-left">
+              <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <span>Anchor • CareKit &amp; Orientation</span>
             </div>
-            ${deliveryBadge}
+            <span class="carekit-chevron">›</span>
           </div>
-
-          <div class="vitals-strip">
-            ${statusChip}
-            ${hrChip}
-            ${rrChip}
-          </div>
-
-          <div class="card-grounded-quote">
-            "${escapeHtml(data.grounded_message)}"
-          </div>
-
-          <div class="card-clinical-note">
-            ${clinicalNote}
+          <div class="carekit-body">
+            <div class="carekit-vitals-row">
+              <div class="${dotClass}"></div>
+              <span>❤️ ${bpm} BPM</span>
+              <span style="color:#8e8e93;">•</span>
+              <span>🫁 ${brpm} BrPM</span>
+              <span style="color:#8e8e93;">•</span>
+              <span style="color:${isPanic ? '#ff453a' : '#34c759'}; font-weight:600;">${vitalsLabel}</span>
+            </div>
+            <div class="carekit-grounded-preview">
+              "${escapeHtml(data.grounded_message)}"
+            </div>
+            <div class="carekit-footer-subtext">
+              <span>${deliveryLabel}</span>
+              <span>•</span>
+              <span>${isPanic ? 'Speech intervention calmed Eleanor' : 'Resting comfortably'}</span>
+            </div>
           </div>
         `;
+        chatStream.appendChild(attachment);
 
-        chatStream.appendChild(responseCard);
+        // 3. Native Incoming Gray iMessage Speech Bubble (Eleanor's Bedside Response)
+        const incomingRow = document.createElement('div');
+        incomingRow.className = 'bubble-row-incoming';
+        incomingRow.innerHTML = `
+          <div class="imessage-bubble-gray">
+            Hi ${escapeHtml(currentSender)}, Eleanor saw your message on her bedside display.
+          </div>
+        `;
+        chatStream.appendChild(incomingRow);
+
         chatStream.scrollTop = chatStream.scrollHeight;
 
       } catch (err) {
-        const statusEl = bubbleRow.querySelector('.bubble-status');
+        const statusEl = outgoingRow.querySelector('.bubble-status');
         statusEl.textContent = 'Failed to deliver';
         statusEl.style.color = '#ff453a';
       } finally {
@@ -955,7 +982,7 @@
       }
     }
 
-    // Live Security Alert Poller for all Family and Caregivers
+    // Live Security Alert Poller for Family and Caregivers
     setInterval(async () => {
       if (!isFamilyOrCaregiver()) return;
 
