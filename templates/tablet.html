@@ -268,15 +268,12 @@
     }
 
     /* Scientifically Designed Dementia Message Card */
-    /* - Solid background (no dizzying transparency/glassmorphism) */
-    /* - Maximum contrast border */
-    /* - Left-aligned text with constrained line length to stop visual crowding */
     .message-stage-card {
       background: #0d1522;
       border: 3.5px solid #64748b;
       border-radius: var(--radius-xl);
-      padding: 44px 50px;
-      max-width: 940px;
+      padding: 40px 48px;
+      max-width: 960px;
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -300,87 +297,84 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 2px solid #334155;
-      padding-bottom: 22px;
+      padding-bottom: 26px;
+      gap: 24px;
     }
 
     .sender-profile {
       display: flex;
       align-items: center;
-      gap: 22px;
+      gap: 28px;
     }
 
-    /* Multimodal Contact Avatar / Photo Container */
+    /* Prominent Bedside Contact Photo - Scaled for instant visual recognition at distance */
     .sender-avatar-wrapper {
       position: relative;
-      width: 78px;
-      height: 78px;
+      width: clamp(130px, 15vw, 168px);
+      height: clamp(130px, 15vw, 168px);
       flex-shrink: 0;
     }
 
     .sender-photo {
-      width: 78px;
-      height: 78px;
-      border-radius: 20px;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
       object-fit: cover;
-      border: 3px solid #7dd3fc;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      border: 4px solid #38bdf8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.25);
       display: block;
       background: #0369a1;
     }
 
     .sender-monogram {
-      width: 78px;
-      height: 78px;
-      border-radius: 20px;
-      background: #0369a1;
-      border: 2.5px solid #7dd3fc;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      border: 4px solid #7dd3fc;
       display: grid;
       place-items: center;
-      font-size: 28px;
+      font-size: clamp(40px, 5vw, 56px);
       font-weight: 700;
       color: #ffffff;
       flex-shrink: 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
     .sender-details {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
     }
 
     .sender-details h2 {
-      font-size: clamp(28px, 3.8vw, 36px);
+      font-size: clamp(34px, 4.4vw, 46px);
       font-weight: 700;
       color: #ffffff;
       letter-spacing: 0.01em;
-      line-height: 1.2;
+      line-height: 1.15;
     }
 
     /* Scientifically optimized relationship cue: Warm Amber/Gold is easier for aging yellowed eyes than blue */
     .sender-relationship-badge {
       display: inline-flex;
       align-items: center;
-      font-size: 21px;
+      font-size: clamp(22px, 2.6vw, 26px);
       font-weight: 700;
       color: #fde047;
       letter-spacing: 0.02em;
     }
 
     .message-arrival-time {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 600;
       color: #cbd5e1;
       font-variant-numeric: tabular-nums;
+      align-self: flex-start;
+      padding-top: 8px;
     }
 
     /* Grounded Body Text */
-    /* Dementia Guidelines:
-       - Left-aligned (anchors visual tracking)
-       - Atkinson Hyperlegible sans-serif
-       - Generous line-height (1.65) to eliminate crowding
-       - Line length restricted to max ~56 characters
-       - Avoid pure harsh all-white vibration with balanced soft ivory
-    */
     .grounded-body-text {
       font-family: 'Atkinson Hyperlegible', sans-serif;
       font-size: clamp(30px, 3.8vw, 40px);
@@ -390,7 +384,7 @@
       letter-spacing: 0.02em;
       text-align: left;
       max-width: 56ch;
-      padding: 8px 0;
+      padding: 6px 0;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
