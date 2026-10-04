@@ -30,9 +30,11 @@ app = FastAPI(
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
+PROCESSED_AVATAR_DIR = STATIC_DIR / "avatars" / "processed"
 
-# Ensure static folder exists and mount it for contact avatars & media
+# Ensure static directories exist and mount them for contact avatars & media
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_AVATAR_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 _caregiver_alerts: deque = deque(maxlen=50)

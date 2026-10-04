@@ -1,9 +1,13 @@
 import os
+import io
 import json
 import uuid
 import time
+import hashlib
 import asyncio
+import urllib.request
 from collections import deque
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv, find_dotenv
 
@@ -12,6 +16,12 @@ from services.elevenlabs_service import generate_speech_audio
 from services.presage_service import evaluate_anxiety
 
 load_dotenv(find_dotenv(), override=True)
+
+# Directory paths for avatar resolution and processed face-cropped images
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+PROCESSED_AVATARS_DIR = STATIC_DIR / "avatars" / "processed"
+PROCESSED_AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_CONTACTS: Dict[str, Dict[str, str]] = {
     "+15551234567": {"name": "Alex", "relationship": "Grandson", "photo_url": "/static/avatars/alex.jpg"},
@@ -70,6 +80,168 @@ def get_contact_directory() -> Dict[str, Dict[str, str]]:
     return contacts
 
 
+def _load_image_bytes(photo_url: str) -> Optional[bytes]:
+    """Loads raw image bytes from local static path, remote URL, or data URI."""
+    if not photo_url:
+        return None
+
+    # Handle local static path (e.g., /static/avatars/alex.jpg)
+    if photo_url.startswith("/static/"):
+        relative_path = photo_url.replace("/static/", "", 1)
+        file_path = STATIC_DIR / relative_path
+        if file_path.exists() and file_path.is_file():
+            try:
+                return file_path.read_bytes()
+            except Exception as exc:
+                print(f"[Anchor Warning] Could not read local image {file_path}: {exc}")
+                return None
+
+    # Handle data URI (base64)
+    if photo_url.startswith("data:image/") and ";base64," in photo_url:
+        try:
+            import base64
+            _, b64_data = photo_url.split(";base64,", 1)
+            return base64.b64decode(b64_data)
+        except Exception as exc:
+            print(f"[Anchor Warning] Failed to decode base64 avatar: {exc}")
+            return None
+
+    # Handle remote HTTP/HTTPS URL
+    if photo_url.startswith("http://") or photo_url.startswith("https://"):
+        try:
+            req = urllib.request.Request(photo_url, headers={"User-Agent": "Anchor-Dementia-Station/1.0"})
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
+                return resp.read()
+        except Exception as exc:
+            print(f"[Anchor Warning] Could not fetch remote avatar {photo_url}: {exc}")
+            return None
+
+    return None
+
+
+def crop_face_for_dementia_recognition(photo_url: str) -> str:
+    """
+    Applies clinical dementia-friendly facial detection and adaptive framing.
+    
+    1. Loads the source photo (local, remote, or base64).
+    2. Runs Haar Cascade frontal face detection.
+    3. If a face is found:
+       - Calculates an expanded 1:1 framing box with ~35% - 40% margin around the head.
+       - Preserves hair, ears, neck, and upper shoulders (crucial visual anchors for dementia patients).
+       - Cuts out distracting background clutter (rooms, trees, other objects).
+    4. Caches the 512x512 cropped portrait into /static/avatars/processed/ and returns its URL.
+    """
+    if not photo_url or not photo_url.strip():
+        return photo_url
+
+    # Check if already processed
+    if "/avatars/processed/" in photo_url:
+        return photo_url
+
+    try:
+        from PIL import Image
+        import cv2
+        import numpy as np
+    except ImportError:
+        # If OpenCV or Pillow is not installed in the runtime environment, return original
+        return photo_url
+
+    raw_bytes = _load_image_bytes(photo_url.strip())
+    if not raw_bytes:
+        return photo_url
+
+    # Compute a deterministic cache key from image bytes
+    image_hash = hashlib.sha256(raw_bytes).hexdigest()[:16]
+    target_filename = f"face_{image_hash}.jpg"
+    target_path = PROCESSED_AVATARS_DIR / target_filename
+    target_url = f"/static/avatars/processed/{target_filename}"
+
+    # Return cached version if already processed
+    if target_path.exists():
+        return target_url
+
+    try:
+        pil_img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+        width, height = pil_img.size
+
+        # Convert to OpenCV grayscale image for cascade detection
+        np_img = np.array(pil_img)
+        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        faces = face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(int(min(width, height) * 0.15), int(min(width, height) * 0.15)),
+        )
+
+        if len(faces) > 0:
+            # Pick the most prominent/largest detected face
+            faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
+            fx, fy, fw, fh = faces[0]
+
+            # Calculate face center
+            fcx = fx + (fw / 2.0)
+            fcy = fy + (fh / 2.0)
+
+            # Sizing rule: Face should occupy roughly 45%-55% of the frame height,
+            # leaving 35%-40% margin for hair, ears, and upper shoulders.
+            target_box_size = max(fw, fh) * 1.95
+
+            # Clamp box size to image dimensions
+            target_box_size = min(target_box_size, min(width, height))
+
+            # Dementia framing bias: Keep top of hair intact by shifting crop center slightly down from top
+            crop_cx = fcx
+            crop_cy = fcy - (target_box_size * 0.06)
+
+            left = crop_cx - (target_box_size / 2.0)
+            top = crop_cy - (target_box_size / 2.0)
+            right = left + target_box_size
+            bottom = top + target_box_size
+
+            # Adjust bounds to stay within image edges
+            if left < 0:
+                right += abs(left)
+                left = 0
+            if top < 0:
+                bottom += abs(top)
+                top = 0
+            if right > width:
+                left -= (right - width)
+                right = width
+            if bottom > height:
+                top -= (bottom - height)
+                bottom = height
+
+            left = max(0, int(left))
+            top = max(0, int(top))
+            right = min(width, int(right))
+            bottom = min(height, int(bottom))
+
+            cropped = pil_img.crop((left, top, right, bottom))
+        else:
+            # Fallback: Upper-third centered square crop (optimal for standard portraits)
+            square_size = min(width, height)
+            left = max(0, int((width - square_size) / 2))
+            top = max(0, int((height - square_size) * 0.25))
+            right = left + square_size
+            bottom = top + square_size
+            cropped = pil_img.crop((left, top, right, bottom))
+
+        # Standardize to 512x512 high-contrast image for dementia tablet viewing
+        resample_filter = getattr(Image, "Resampling", Image).LANCZOS
+        cropped = cropped.resize((512, 512), resample=resample_filter)
+        cropped.save(target_path, format="JPEG", quality=92, optimize=True)
+
+        return target_url
+    except Exception as exc:
+        print(f"[Anchor Face Crop Exception]: {exc}")
+        return photo_url
+
+
 def resolve_contact_photo(
     sender_name: str,
     sender_handle: str,
@@ -79,30 +251,39 @@ def resolve_contact_photo(
     Resolves the avatar image URL for a sender using explicit payload values,
     the contact directory, or name pattern matching.
     """
+    resolved_url: Optional[str] = None
+
     if explicit_photo_url and explicit_photo_url.strip():
-        return explicit_photo_url.strip()
+        resolved_url = explicit_photo_url.strip()
+    else:
+        contacts = get_contact_directory()
 
-    contacts = get_contact_directory()
+        # 1. Direct handle or name lookup in directory
+        if sender_handle in contacts and contacts[sender_handle].get("photo_url"):
+            resolved_url = contacts[sender_handle]["photo_url"]
+        elif sender_name in contacts and contacts[sender_name].get("photo_url"):
+            resolved_url = contacts[sender_name]["photo_url"]
+        else:
+            # 2. Case-insensitive key lookup in directory
+            sender_lower = (sender_name or "").lower().strip()
+            handle_lower = (sender_handle or "").lower().strip()
 
-    # 1. Direct handle or name lookup in directory
-    if sender_handle in contacts and contacts[sender_handle].get("photo_url"):
-        return contacts[sender_handle]["photo_url"]
-    if sender_name in contacts and contacts[sender_name].get("photo_url"):
-        return contacts[sender_name]["photo_url"]
+            for key, info in contacts.items():
+                if key.lower() in (sender_lower, handle_lower):
+                    if info.get("photo_url"):
+                        resolved_url = info["photo_url"]
+                        break
 
-    # 2. Case-insensitive key lookup in directory
-    sender_lower = (sender_name or "").lower().strip()
-    handle_lower = (sender_handle or "").lower().strip()
+            # 3. Pattern match against known presets (e.g. "chen" -> chen.jpg)
+            if not resolved_url:
+                for pattern, path in AVATAR_NAME_PATTERNS.items():
+                    if pattern in sender_lower or pattern in handle_lower:
+                        resolved_url = path
+                        break
 
-    for key, info in contacts.items():
-        if key.lower() in (sender_lower, handle_lower):
-            if info.get("photo_url"):
-                return info["photo_url"]
-
-    # 3. Pattern match against known presets (e.g. "chen" -> chen.jpg)
-    for pattern, path in AVATAR_NAME_PATTERNS.items():
-        if pattern in sender_lower or pattern in handle_lower:
-            return path
+    # If an image URL was found, run adaptive smart face detection and crop
+    if resolved_url:
+        return crop_face_for_dementia_recognition(resolved_url)
 
     return None
 
@@ -198,7 +379,7 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
     if not raw_message:
         raw_message = "(No text content)"
 
-    # Resolve sender photo URL
+    # Resolve sender photo URL with adaptive face cropping
     sender_photo_url = resolve_contact_photo(
         sender_name=sender_name,
         sender_handle=sender_handle,
