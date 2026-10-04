@@ -2,6 +2,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+from collections import deque
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv, find_dotenv
@@ -26,6 +27,7 @@ app = FastAPI(
 )
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+_caregiver_alerts: deque = deque(maxlen=50)
 
 
 def render_template(filename: str, context: Optional[Dict[str, str]] = None) -> HTMLResponse:
@@ -150,6 +152,10 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
             detail=f"Failed to process message from {source}: {exc}",
         ) from exc
 
+    # Record malicious alerts so caregivers monitoring in Caregiver mode receive them immediately
+    if result.get("is_malicious") or result.get("blocked_from_patient"):
+        _caregiver_alerts.append(result)
+
     print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
 
     # If incoming via Twilio SMS, return TwiML XML so the sender/caregiver gets an immediate text reply
@@ -222,6 +228,21 @@ async def list_recent_events():
 async def get_most_recent_event():
     """Returns the single latest safe event."""
     return {"event": get_latest_event()}
+
+
+@app.get("/api/caregiver/alerts")
+async def list_caregiver_alerts():
+    """Returns intercepted scam/malicious alerts for caregiver monitoring."""
+    alerts = list(_caregiver_alerts)
+    alerts.reverse()
+    return {"alerts": alerts}
+
+
+@app.get("/api/caregiver/alerts/latest")
+async def get_latest_caregiver_alert():
+    """Returns the most recent malicious alert."""
+    latest = _caregiver_alerts[-1] if _caregiver_alerts else None
+    return {"alert": latest}
 
 
 @app.get("/audio/{audio_id}")

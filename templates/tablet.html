@@ -1020,32 +1020,20 @@
     }
 
     function updateBedsideDisplay(data, avatar) {
+      // If a message was flagged as malicious, DO NOT show it on Eleanor's bedside screen.
+      // Her tablet view remains peaceful and undisturbed.
+      if (data.is_malicious || data.blocked_from_patient) {
+        return;
+      }
+
+      if (data.event_id) {
+        lastEventId = data.event_id;
+      }
+
       const receiptBox = document.getElementById('caregiverReceiptBox');
       const receiptHeader = document.getElementById('receiptHeader');
       const receiptText = document.getElementById('caregiverReceiptText');
       const receiptIcon = document.getElementById('receiptIcon');
-
-      // MALICIOUS SCAM INTERVENTION
-      if (data.is_malicious || data.blocked_from_patient) {
-        // DO NOT update Eleanor's quote or banner. Protect her station!
-        receiptBox.style.background = 'rgba(244, 63, 94, 0.15)';
-        receiptBox.style.borderColor = 'rgba(244, 63, 94, 0.45)';
-        receiptBox.style.color = '#fda4af';
-        receiptIcon.textContent = '🚨';
-        receiptHeader.textContent = 'ANCHOR SHIELD • Malicious Message Blocked:';
-        receiptText.textContent = data.caregiver_reply || "Malicious message blocked from Eleanor's bedside station.";
-
-        const statusText = document.getElementById('audioStatusText');
-        statusText.textContent = "🛡️ Malicious content blocked • Bedside station quiet";
-        statusText.style.color = '#fb7185';
-        document.getElementById('replayBtn').style.display = 'none';
-        return;
-      }
-
-      // SAFE GROUNDED MESSAGE
-      if (data.event_id) {
-        lastEventId = data.event_id;
-      }
 
       receiptBox.style.background = 'rgba(56, 189, 248, 0.08)';
       receiptBox.style.borderColor = 'rgba(56, 189, 248, 0.25)';
@@ -1124,7 +1112,7 @@
       }
     }
 
-    // Background poller for live external webhooks
+    // Background poller for live external safe webhooks
     setInterval(async () => {
       try {
         const res = await fetch('/api/events/latest');

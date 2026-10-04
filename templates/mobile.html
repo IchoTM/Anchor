@@ -167,12 +167,21 @@
       gap: 4px;
     }
 
+    .connection-badge.caregiver-mode {
+      color: #38bdf8;
+    }
+
     .connection-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: #10b981;
       box-shadow: 0 0 6px #10b981;
+    }
+
+    .connection-badge.caregiver-mode .connection-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 6px #38bdf8;
     }
 
     /* Message History Stream */
@@ -262,7 +271,7 @@
     .telemetry-receipt-card.malicious {
       border-left: 3.5px solid #f43f5e;
       background: rgba(45, 15, 22, 0.95);
-      border-color: rgba(244, 63, 94, 0.3);
+      border-color: rgba(244, 63, 94, 0.35);
     }
 
     .telemetry-header {
@@ -595,6 +604,12 @@
       cursor: pointer;
     }
 
+    .quick-chip.caregiver-chip {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+    }
+
     .btn-save-identity {
       background: var(--ios-blue);
       color: white;
@@ -630,7 +645,7 @@
     </div>
 
     <div class="header-nav-right">
-      <div class="facetime-btn" title="FaceTime Unavailable" onclick="openIdentityModal()">
+      <div class="facetime-btn" title="Settings" onclick="openIdentityModal()">
         <span>⚙️</span>
       </div>
     </div>
@@ -639,20 +654,20 @@
   <!-- Identity Subnav Pill -->
   <div class="identity-subnav">
     <div class="identity-pill" onclick="openIdentityModal()">
-      <span>Texting as:</span>
+      <span id="subnavModeLabel">Texting as:</span>
       <strong id="headerSenderDisplay">Alex (Grandson)</strong>
       <span class="edit-icon">✎</span>
     </div>
-    <div class="connection-badge">
+    <div class="connection-badge" id="connectionBadge">
       <div class="connection-dot"></div>
-      <span>Anchor Shield Active</span>
+      <span id="connectionBadgeText">Anchor Active</span>
     </div>
   </div>
 
   <!-- Messages History Stream -->
   <div class="chat-scroll" id="chatStream">
     <div class="imessage-stamp">Today 10:42 AM</div>
-    <div class="imessage-secure-notice">
+    <div class="imessage-secure-notice" id="secureNotice">
       iMessage • Grounded by Anchor AI &amp; Scam Protection Active
     </div>
   </div>
@@ -682,27 +697,29 @@
   <div class="identity-modal" id="identityModal">
     <div class="identity-card">
       <div class="modal-header-icon">⚓</div>
-      <div class="modal-title">Who is texting Eleanor?</div>
+      <div class="modal-title">Who is using Anchor?</div>
       <div class="modal-desc">
-        Personalizing your name &amp; relationship lets Anchor ground your message gently for her bedside display.
+        Set your contact information and relation to Eleanor. Select <strong>Maria (Caregiver)</strong> to activate live caregiver monitoring mode.
       </div>
 
       <div class="form-group">
-        <label for="nameInput">Your Name</label>
-        <input type="text" id="nameInput" class="modal-input" placeholder="e.g. Alex" value="Alex">
+        <label for="contactInfoInput">Contact Info</label>
+        <input type="text" id="contactInfoInput" class="modal-input" placeholder="e.g. Alex, Sarah, or +1 (555) 019-2834" value="Alex">
       </div>
 
       <div class="form-group">
-        <label for="relInput">Relationship to Eleanor</label>
-        <input type="text" id="relInput" class="modal-input" placeholder="e.g. Grandson, Daughter, Doctor" value="Grandson">
+        <label for="relationInput">Relation</label>
+        <input type="text" id="relationInput" class="modal-input" placeholder="e.g. Grandson, Daughter, Caregiver, Unknown Sender" value="Grandson">
       </div>
 
-      <div class="quick-presets-label">Quick Contacts:</div>
+      <div class="quick-presets-label">Quick Contacts &amp; Modes:</div>
       <div class="quick-presets-row">
         <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('David', 'Son')">David (Son)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('+1 (555) 019-2834', 'Unknown')">Unknown (+1 555-0199)</button>
+        <button type="button" class="quick-chip caregiver-chip" onclick="fillProfile('Maria', 'Caregiver')">🩺 Maria (Caregiver)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor')">Dr. Chen</button>
+        <button type="button" class="quick-chip" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.3);" onclick="fillProfile('+1 (555) 019-2834', 'Unknown Sender')">⚠️ Unknown Sender</button>
       </div>
 
       <button type="button" class="btn-save-identity" onclick="saveIdentity()">Done</button>
@@ -712,6 +729,13 @@
   <script>
     let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
+    let lastHandledAlertId = null;
+
+    function isCaregiverMode() {
+      const rel = (currentRelationship || "").toLowerCase();
+      const sender = (currentSender || "").toLowerCase();
+      return rel.includes('caregiver') || sender.includes('caregiver') || rel.includes('nurse');
+    }
 
     function syncViewport() {
       if (window.visualViewport) {
@@ -755,14 +779,28 @@
 
     function updateHeaderDisplay() {
       const display = document.getElementById('headerSenderDisplay');
+      const modeLabel = document.getElementById('subnavModeLabel');
+      const badge = document.getElementById('connectionBadge');
+      const badgeText = document.getElementById('connectionBadgeText');
+
       if (display) {
         display.textContent = `${currentSender} (${currentRelationship})`;
+      }
+
+      if (isCaregiverMode()) {
+        modeLabel.textContent = "Caregiver Monitoring:";
+        badge.classList.add('caregiver-mode');
+        badgeText.textContent = "Caregiver Guard Active";
+      } else {
+        modeLabel.textContent = "Texting as:";
+        badge.classList.remove('caregiver-mode');
+        badgeText.textContent = "Anchor Active";
       }
     }
 
     function openIdentityModal() {
-      document.getElementById('nameInput').value = currentSender;
-      document.getElementById('relInput').value = currentRelationship;
+      document.getElementById('contactInfoInput').value = currentSender;
+      document.getElementById('relationInput').value = currentRelationship;
       document.getElementById('identityModal').style.display = 'grid';
     }
 
@@ -770,31 +808,28 @@
       document.getElementById('identityModal').style.display = 'none';
     }
 
-    function fillProfile(name, rel) {
-      document.getElementById('nameInput').value = name;
-      document.getElementById('relInput').value = rel;
+    function fillProfile(contact, rel) {
+      document.getElementById('contactInfoInput').value = contact;
+      document.getElementById('relationInput').value = rel;
     }
 
     function saveIdentity() {
-      const name = document.getElementById('nameInput').value.trim();
-      const rel = document.getElementById('relInput').value.trim();
-      if (name) currentSender = name;
+      const contact = document.getElementById('contactInfoInput').value.trim();
+      const rel = document.getElementById('relationInput').value.trim();
+      if (contact) currentSender = contact;
       if (rel) currentRelationship = rel;
 
       localStorage.setItem('anchor_sender_name', currentSender);
       localStorage.setItem('anchor_sender_rel', currentRelationship);
-      localStorage.setItem('anchor_profile_configured', 'true');
 
       updateHeaderDisplay();
       closeIdentityModal();
     }
 
+    // Modal pops up EVERY TIME the mobile app is opened
     window.addEventListener('DOMContentLoaded', () => {
       updateHeaderDisplay();
-      const configured = localStorage.getItem('anchor_profile_configured');
-      if (!configured) {
-        openIdentityModal();
-      }
+      openIdentityModal();
     });
 
     function fillScenario(text) {
@@ -802,6 +837,35 @@
       input.value = text;
       toggleSendBtnState();
       input.focus();
+    }
+
+    function renderMaliciousWarningCard(data) {
+      const chatStream = document.getElementById('chatStream');
+      const warningCard = document.createElement('div');
+      warningCard.className = 'telemetry-receipt-card malicious';
+      const senderInfo = data.sender_handle || data.sender_name || "Unknown Sender";
+
+      warningCard.innerHTML = `
+        <div class="telemetry-header">
+          <div class="telemetry-title" style="color: #fb7185;">
+            <span>🛡️ ANCHOR SHIELD ALERT</span>
+          </div>
+          <span class="delivery-pill blocked">Blocked from Eleanor</span>
+        </div>
+        <div style="font-size: 13px; font-weight: 600; color: #fff;">
+          Predatory or Scam Content Intercepted
+        </div>
+        <div style="font-size: 12px; color: #e2e8f0; line-height: 1.45; background: rgba(0,0,0,0.3); padding: 9px 11px; border-radius: 10px;">
+          <div><strong>From:</strong> ${escapeHtml(senderInfo)}</div>
+          <div style="margin-top: 3px;"><strong>Message:</strong> "${escapeHtml(data.raw_message)}"</div>
+          <div style="margin-top: 3px;"><strong>Why Flagged:</strong> <span style="color: #fda4af;">${escapeHtml(data.malicious_reason || "Emergency financial extortion / Grandparent Scam pattern")}</span></div>
+        </div>
+        <div class="card-clinical-note" style="color: #34d399;">
+          <span>🛡️ Action: This message was blocked from Eleanor's tablet and silence was maintained.</span>
+        </div>
+      `;
+      chatStream.appendChild(warningCard);
+      chatStream.scrollTop = chatStream.scrollHeight;
     }
 
     async function sendMessage() {
@@ -849,37 +913,14 @@
         const statusEl = bubbleRow.querySelector('.bubble-status');
         statusEl.textContent = data.is_malicious ? 'Blocked by Shield' : 'Delivered';
 
-        // MALICIOUS WARNING ALERT CARD FOR CAREGIVER
         if (data.is_malicious || data.blocked_from_patient) {
-          const warningCard = document.createElement('div');
-          warningCard.className = 'telemetry-receipt-card malicious';
-          const senderInfo = data.sender_handle || currentSender || "Unknown Phone Number";
-
-          warningCard.innerHTML = `
-            <div class="telemetry-header">
-              <div class="telemetry-title" style="color: #fb7185;">
-                <span>🛡️ ANCHOR SHIELD ALERT</span>
-              </div>
-              <span class="delivery-pill blocked">Blocked from Eleanor</span>
-            </div>
-            <div style="font-size: 13px; font-weight: 600; color: #fff;">
-              Predatory or Scam Content Intercepted
-            </div>
-            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.45; background: rgba(0,0,0,0.3); padding: 9px 11px; border-radius: 10px;">
-              <div><strong>From:</strong> ${escapeHtml(senderInfo)}</div>
-              <div style="margin-top: 3px;"><strong>Message:</strong> "${escapeHtml(data.raw_message)}"</div>
-              <div style="margin-top: 3px;"><strong>Why Flagged:</strong> <span style="color: #fda4af;">${escapeHtml(data.malicious_reason || "Emergency financial extortion / Grandparent Scam pattern")}</span></div>
-            </div>
-            <div class="card-clinical-note" style="color: #34d399;">
-              <span>🛡️ Action: This message was blocked from Eleanor's tablet and silence was maintained.</span>
-            </div>
-          `;
-          chatStream.appendChild(warningCard);
-          chatStream.scrollTop = chatStream.scrollHeight;
+          if (data.event_id) {
+            lastHandledAlertId = data.event_id;
+          }
+          renderMaliciousWarningCard(data);
           return;
         }
 
-        // SAFE GROUNDED MESSAGE RECEIPT CARD
         const isPanic = Boolean(data.anxiety_detected);
         const anxietyScore = data.anxiety_score || 0;
 
@@ -946,6 +987,20 @@
         toggleSendBtnState();
       }
     }
+
+    // Caregiver Monitoring Poller: receives intercepted scam alerts in real-time
+    setInterval(async () => {
+      if (!isCaregiverMode()) return;
+
+      try {
+        const res = await fetch('/api/caregiver/alerts/latest');
+        const data = await res.json();
+        if (data.alert && data.alert.event_id && data.alert.event_id !== lastHandledAlertId) {
+          lastHandledAlertId = data.alert.event_id;
+          renderMaliciousWarningCard(data.alert);
+        }
+      } catch (e) {}
+    }, 2000);
 
     function escapeHtml(string) {
       const div = document.createElement('div');
