@@ -357,6 +357,7 @@
       z-index: 1000;
       place-items: center;
       padding: 20px;
+      overflow-y: auto;
     }
 
     .identity-card {
@@ -364,13 +365,14 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 22px;
       padding: 22px;
-      max-width: 350px;
+      max-width: 370px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 14px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
       animation: popIn 0.2s ease-out;
+      margin: auto;
     }
 
     @keyframes popIn {
@@ -401,6 +403,109 @@
       text-align: center;
       line-height: 1.4;
       margin-top: -6px;
+    }
+
+    /* Avatar Upload Card Section */
+    .avatar-upload-section {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .avatar-preview-wrapper {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .avatar-preview-img-box {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #2c2c2e;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .avatar-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-preview-placeholder {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .avatar-upload-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--ios-blue);
+      border: 1.5px solid #1c1c1e;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .avatar-upload-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .btn-upload-photo {
+      background: rgba(10, 132, 255, 0.16);
+      border: 1px solid rgba(10, 132, 255, 0.4);
+      color: #60a5fa;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.15s;
+    }
+
+    .btn-upload-photo:hover {
+      background: rgba(10, 132, 255, 0.28);
+    }
+
+    .btn-clear-photo {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 11px;
+      cursor: pointer;
+      align-self: flex-start;
+      padding: 1px 2px;
+      text-decoration: underline;
+    }
+
+    .avatar-subtext {
+      font-size: 10.5px;
+      color: #8e8e93;
+      line-height: 1.3;
     }
 
     .form-group {
@@ -455,6 +560,10 @@
       font-size: 11px;
       color: #d1d5db;
       cursor: pointer;
+    }
+
+    .quick-chip:active {
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .btn-save-identity {
@@ -528,7 +637,26 @@
       <div class="modal-header-icon">⚓</div>
       <div class="modal-title">Who is texting Eleanor?</div>
       <div class="modal-desc">
-        Select your contact info and relation to Eleanor. All family &amp; caregivers receive live security alerts if an outside scam is intercepted.
+        Select or customize your contact details. Eleanor's bedside tablet uses clinical face detection to frame familiar faces.
+      </div>
+
+      <!-- Avatar Photo Upload Box -->
+      <div class="avatar-upload-section">
+        <div class="avatar-preview-wrapper" onclick="triggerPhotoUpload()" title="Tap to upload photo or selfie">
+          <div class="avatar-preview-img-box" id="avatarPreviewBox">
+            <img id="avatarPreviewImg" src="/static/avatars/alex.jpg" alt="Contact Avatar" class="avatar-preview-img" onerror="handleAvatarImgError()">
+          </div>
+          <div class="avatar-upload-badge">📷</div>
+        </div>
+        <div class="avatar-upload-meta">
+          <button type="button" class="btn-upload-photo" onclick="triggerPhotoUpload()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Upload Selfie / Photo
+          </button>
+          <button type="button" class="btn-clear-photo" id="btnClearPhoto" onclick="clearUploadedPhoto()" style="display: none;">Reset photo</button>
+          <div class="avatar-subtext">Judges: Upload your headshot to test live facial recognition on Eleanor's screen!</div>
+        </div>
+        <input type="file" id="photoFileInput" accept="image/*" style="display: none;" onchange="handlePhotoFileSelected(event)">
       </div>
 
       <div class="form-group">
@@ -543,12 +671,12 @@
 
       <div class="quick-presets-label">Quick Contacts:</div>
       <div class="quick-presets-row">
-        <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('David', 'Son')">David (Son)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('Maria', 'Caregiver')">Maria (Caregiver)</button>
-        <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor')">Dr. Chen (Doctor)</button>
-        <button type="button" class="quick-chip" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.3);" onclick="fillProfile('+1 (555) 019-2834', 'Unknown Sender')">⚠️ Unknown Sender</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson', '/static/avatars/alex.jpg')">Alex (Grandson)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter', '/static/avatars/sarah.jpg')">Sarah (Daughter)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('David', 'Son', '/static/avatars/david.jpg')">David (Son)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Maria', 'Caregiver', '/static/avatars/maria.jpg')">Maria (Caregiver)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor', '/static/avatars/chen.jpg')">Dr. Chen (Doctor)</button>
+        <button type="button" class="quick-chip" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.3);" onclick="fillProfile('+1 (555) 019-2834', 'Unknown Sender', '')">⚠️ Unknown Sender</button>
       </div>
 
       <button type="button" class="btn-save-identity" onclick="saveIdentity()">Done</button>
@@ -558,6 +686,7 @@
   <script>
     let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
+    let currentPhotoUrl = localStorage.getItem('anchor_sender_photo') || "/static/avatars/alex.jpg";
     let lastHandledAlertId = null;
     let alertTrackerReady = false;
 
@@ -634,9 +763,91 @@
       sendBtn.disabled = !input.value.trim();
     }
 
+    function updateAvatarModalPreview(url) {
+      const img = document.getElementById('avatarPreviewImg');
+      const clearBtn = document.getElementById('btnClearPhoto');
+      if (url && url.trim()) {
+        img.src = url;
+        img.style.display = 'block';
+        if (clearBtn) {
+          clearBtn.style.display = url.startsWith('data:image/') ? 'inline-block' : 'none';
+        }
+      } else {
+        img.src = '';
+        img.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'none';
+      }
+    }
+
+    function handleAvatarImgError() {
+      const img = document.getElementById('avatarPreviewImg');
+      img.src = '/static/avatars/alex.jpg';
+    }
+
+    function triggerPhotoUpload() {
+      const fileInput = document.getElementById('photoFileInput');
+      if (fileInput) fileInput.click();
+    }
+
+    function handlePhotoFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const rawSrc = e.target.result;
+        const img = new Image();
+        img.onload = function() {
+          // Downscale judge selfie/photo to max 600px square for instant fast upload
+          const maxDim = 600;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          currentPhotoUrl = compressedDataUrl;
+          localStorage.setItem('anchor_sender_photo', currentPhotoUrl);
+          updateAvatarModalPreview(currentPhotoUrl);
+        };
+        img.src = rawSrc;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearUploadedPhoto() {
+      const senderLower = (document.getElementById('contactInfoInput').value || "").toLowerCase();
+      let fallback = "/static/avatars/alex.jpg";
+      if (senderLower.includes("sarah")) fallback = "/static/avatars/sarah.jpg";
+      else if (senderLower.includes("david")) fallback = "/static/avatars/david.jpg";
+      else if (senderLower.includes("maria")) fallback = "/static/avatars/maria.jpg";
+      else if (senderLower.includes("chen")) fallback = "/static/avatars/chen.jpg";
+
+      currentPhotoUrl = fallback;
+      localStorage.setItem('anchor_sender_photo', currentPhotoUrl);
+      updateAvatarModalPreview(currentPhotoUrl);
+
+      const fileInput = document.getElementById('photoFileInput');
+      if (fileInput) fileInput.value = '';
+    }
+
     function openIdentityModal() {
       document.getElementById('contactInfoInput').value = currentSender;
       document.getElementById('relationInput').value = currentRelationship;
+      updateAvatarModalPreview(currentPhotoUrl);
       document.getElementById('identityModal').style.display = 'grid';
     }
 
@@ -644,9 +855,13 @@
       document.getElementById('identityModal').style.display = 'none';
     }
 
-    function fillProfile(contact, rel) {
+    function fillProfile(contact, rel, photoUrl) {
       document.getElementById('contactInfoInput').value = contact;
       document.getElementById('relationInput').value = rel;
+      if (photoUrl !== undefined) {
+        currentPhotoUrl = photoUrl;
+        updateAvatarModalPreview(photoUrl);
+      }
     }
 
     async function syncLatestAlertBaseline() {
@@ -672,11 +887,11 @@
 
       localStorage.setItem('anchor_sender_name', currentSender);
       localStorage.setItem('anchor_sender_rel', currentRelationship);
+      localStorage.setItem('anchor_sender_photo', currentPhotoUrl || "");
 
       closeIdentityModal();
 
       if (changed) {
-        // Baseline to whatever is currently on the server so old scam alerts aren't treated as new
         await syncLatestAlertBaseline();
         resetChatStreamForCurrentPersona();
       }
@@ -741,15 +956,20 @@
       sendBtn.disabled = true;
 
       try {
+        const payloadBody = {
+          sender_name: currentSender,
+          relationship: currentRelationship,
+          raw_message: text
+        };
+        if (currentPhotoUrl && currentPhotoUrl.trim()) {
+          payloadBody.sender_photo_url = currentPhotoUrl.trim();
+        }
+
         const [res, telemetryRes] = await Promise.all([
           fetch('/webhook/imessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sender_name: currentSender,
-              relationship: currentRelationship,
-              raw_message: text
-            })
+            body: JSON.stringify(payloadBody)
           }),
           fetch('/telemetry/presage').catch(() => null)
         ]);

@@ -126,13 +126,14 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
     """
     Applies clinical dementia-friendly facial detection and adaptive framing.
     
-    1. Loads the source photo (local, remote, or base64).
-    2. Runs Haar Cascade frontal face detection.
-    3. If a face is found:
+    1. Loads the source photo (local, remote, or base64 data URI).
+    2. Runs EXIF transpose to ensure correct phone orientation.
+    3. Runs Haar Cascade frontal face detection.
+    4. If a face is found:
        - Calculates an expanded 1:1 framing box with ~35% - 40% margin around the head.
        - Preserves hair, ears, neck, and upper shoulders (crucial visual anchors for dementia patients).
        - Cuts out distracting background clutter (rooms, trees, other objects).
-    4. Caches the 512x512 cropped portrait into /static/avatars/processed/ and returns its URL.
+    5. Caches the 512x512 cropped portrait into /static/avatars/processed/ and returns its URL.
     """
     if not photo_url or not photo_url.strip():
         return photo_url
@@ -142,7 +143,7 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
         return photo_url
 
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
         import cv2
         import numpy as np
     except ImportError:
@@ -164,7 +165,8 @@ def crop_face_for_dementia_recognition(photo_url: str) -> str:
         return target_url
 
     try:
-        pil_img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+        pil_raw = Image.open(io.BytesIO(raw_bytes))
+        pil_img = ImageOps.exif_transpose(pil_raw).convert("RGB")
         width, height = pil_img.size
 
         # Convert to OpenCV grayscale image for cascade detection
