@@ -315,17 +315,30 @@
       gap: 5px;
     }
 
-    /* Scenario Quick Chips */
+    /* Keyboard Accessory Scenario Chips - Hidden until input is active */
     .scenarios-tray {
-      padding: 6px 12px 6px;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
       display: flex;
       gap: 7px;
       overflow-x: auto;
       white-space: nowrap;
       background: #111113;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.07);
+      border-top: 0.5px solid transparent;
+      padding: 0 12px;
+      transition: max-height 0.22s ease, opacity 0.2s ease, padding 0.2s ease;
       flex-shrink: 0;
+      pointer-events: none;
       -webkit-overflow-scrolling: touch;
+    }
+
+    .scenarios-tray.open {
+      max-height: 48px;
+      opacity: 1;
+      padding: 7px 12px 5px;
+      border-top-color: rgba(255, 255, 255, 0.08);
+      pointer-events: auto;
     }
 
     .scenarios-tray::-webkit-scrollbar { display: none; }
@@ -343,7 +356,7 @@
     }
 
     .preset-pill:active {
-      background: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.18);
     }
 
     /* Bottom iOS iMessage Composer */
@@ -594,12 +607,12 @@
   <!-- Messages History Stream -->
   <div class="chat-scroll" id="chatStream"></div>
 
-  <!-- Scenario Quick Pills -->
-  <div class="scenarios-tray">
-    <button type="button" class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
-    <button type="button" class="preset-pill" onclick="fillScenario('Did you take your morning pills? Call me.')">💊 Pill Check</button>
-    <button type="button" class="preset-pill" onclick="fillScenario('I left your reading glasses on the nightstand.')">👓 Lost Item</button>
-    <button type="button" class="preset-pill" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onclick="fillScenario('Grandma, I got arrested in Mexico and need $2,000 bail money right now. Wire it immediately and do not tell mom!')">🚨 Bail Scam</button>
+  <!-- Scenario Quick Pills (Revealed only when typing / message bar is active) -->
+  <div class="scenarios-tray" id="scenariosTray">
+    <button type="button" class="preset-pill" onmousedown="event.preventDefault()" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
+    <button type="button" class="preset-pill" onmousedown="event.preventDefault()" onclick="fillScenario('Did you take your morning pills? Call me.')">💊 Pill Check</button>
+    <button type="button" class="preset-pill" onmousedown="event.preventDefault()" onclick="fillScenario('I left your reading glasses on the nightstand.')">👓 Lost Item</button>
+    <button type="button" class="preset-pill" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);" onmousedown="event.preventDefault()" onclick="fillScenario('Grandma, I got arrested in Mexico and need $2,000 bail money right now. Wire it immediately and do not tell mom!')">🚨 Bail Scam</button>
   </div>
 
   <!-- iOS Composer Bar -->
@@ -702,12 +715,26 @@
     syncViewport();
 
     const messageInput = document.getElementById('messageInput');
+    const scenariosTray = document.getElementById('scenariosTray');
+
+    // Show quick scenarios drawer ONLY when the message input is active
     messageInput.addEventListener('focus', () => {
+      if (scenariosTray) scenariosTray.classList.add('open');
       setTimeout(() => {
         syncViewport();
         const chatStream = document.getElementById('chatStream');
         if (chatStream) chatStream.scrollTop = chatStream.scrollHeight;
       }, 180);
+    });
+
+    messageInput.addEventListener('blur', () => {
+      // Delay closing slightly so clicking preset pill fires first
+      setTimeout(() => {
+        if (document.activeElement !== messageInput && scenariosTray) {
+          scenariosTray.classList.remove('open');
+          syncViewport();
+        }
+      }, 150);
     });
 
     function toggleSendBtnState() {
@@ -745,14 +772,12 @@
 
       closeIdentityModal();
 
-      // Whenever changing personas, clear out conversation history
       if (changed) {
         lastHandledAlertId = null;
         resetChatStreamForCurrentPersona();
       }
     }
 
-    // Modal pops up on load, and resets stream for selected persona
     window.addEventListener('DOMContentLoaded', () => {
       resetChatStreamForCurrentPersona();
       openIdentityModal();
