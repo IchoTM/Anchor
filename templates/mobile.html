@@ -167,21 +167,12 @@
       gap: 4px;
     }
 
-    .connection-badge.caregiver-mode {
-      color: #38bdf8;
-    }
-
     .connection-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: #10b981;
       box-shadow: 0 0 6px #10b981;
-    }
-
-    .connection-badge.caregiver-mode .connection-dot {
-      background: #38bdf8;
-      box-shadow: 0 0 6px #38bdf8;
     }
 
     /* Message History Stream */
@@ -654,7 +645,7 @@
   <!-- Identity Subnav Pill -->
   <div class="identity-subnav">
     <div class="identity-pill" onclick="openIdentityModal()">
-      <span id="subnavModeLabel">Texting as:</span>
+      <span>Texting as:</span>
       <strong id="headerSenderDisplay">Alex (Grandson)</strong>
       <span class="edit-icon">✎</span>
     </div>
@@ -665,12 +656,7 @@
   </div>
 
   <!-- Messages History Stream -->
-  <div class="chat-scroll" id="chatStream">
-    <div class="imessage-stamp">Today 10:42 AM</div>
-    <div class="imessage-secure-notice" id="secureNotice">
-      iMessage • Grounded by Anchor AI &amp; Scam Protection Active
-    </div>
-  </div>
+  <div class="chat-scroll" id="chatStream"></div>
 
   <!-- Scenario Quick Pills -->
   <div class="scenarios-tray">
@@ -697,9 +683,9 @@
   <div class="identity-modal" id="identityModal">
     <div class="identity-card">
       <div class="modal-header-icon">⚓</div>
-      <div class="modal-title">Who is using Anchor?</div>
+      <div class="modal-title">Who is texting Eleanor?</div>
       <div class="modal-desc">
-        Set your contact information and relation to Eleanor. Select <strong>Maria (Caregiver)</strong> to activate live caregiver monitoring mode.
+        Select your contact info and relation to Eleanor. All family &amp; caregivers receive live security alerts if an outside scam is intercepted.
       </div>
 
       <div class="form-group">
@@ -712,7 +698,7 @@
         <input type="text" id="relationInput" class="modal-input" placeholder="e.g. Grandson, Daughter, Caregiver, Unknown Sender" value="Grandson">
       </div>
 
-      <div class="quick-presets-label">Quick Contacts &amp; Modes:</div>
+      <div class="quick-presets-label">Quick Contacts:</div>
       <div class="quick-presets-row">
         <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
@@ -731,10 +717,27 @@
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
     let lastHandledAlertId = null;
 
-    function isCaregiverMode() {
+    // Checks whether current user is an authorized family member or caregiver
+    function isFamilyOrCaregiver() {
       const rel = (currentRelationship || "").toLowerCase();
       const sender = (currentSender || "").toLowerCase();
-      return rel.includes('caregiver') || sender.includes('caregiver') || rel.includes('nurse');
+      return !rel.includes('unknown') && !sender.includes('unknown');
+    }
+
+    // Clears chat stream and starts fresh conversation thread for the active persona
+    function resetChatStreamForCurrentPersona() {
+      const chatStream = document.getElementById('chatStream');
+      if (!chatStream) return;
+
+      chatStream.innerHTML = `
+        <div class="imessage-stamp">Today 10:42 AM</div>
+        <div class="imessage-secure-notice">
+          ${isFamilyOrCaregiver() 
+            ? 'iMessage • Grounded by Anchor AI &amp; Family Security Shield Active' 
+            : 'iMessage with Eleanor'}
+        </div>
+      `;
+      chatStream.scrollTop = chatStream.scrollHeight;
     }
 
     function syncViewport() {
@@ -779,22 +782,14 @@
 
     function updateHeaderDisplay() {
       const display = document.getElementById('headerSenderDisplay');
-      const modeLabel = document.getElementById('subnavModeLabel');
-      const badge = document.getElementById('connectionBadge');
       const badgeText = document.getElementById('connectionBadgeText');
 
       if (display) {
         display.textContent = `${currentSender} (${currentRelationship})`;
       }
 
-      if (isCaregiverMode()) {
-        modeLabel.textContent = "Caregiver Monitoring:";
-        badge.classList.add('caregiver-mode');
-        badgeText.textContent = "Caregiver Guard Active";
-      } else {
-        modeLabel.textContent = "Texting as:";
-        badge.classList.remove('caregiver-mode');
-        badgeText.textContent = "Anchor Active";
+      if (badgeText) {
+        badgeText.textContent = isFamilyOrCaregiver() ? "Anchor Shield Active" : "Carrier Active";
       }
     }
 
@@ -816,6 +811,9 @@
     function saveIdentity() {
       const contact = document.getElementById('contactInfoInput').value.trim();
       const rel = document.getElementById('relationInput').value.trim();
+
+      const changed = (contact && contact !== currentSender) || (rel && rel !== currentRelationship);
+
       if (contact) currentSender = contact;
       if (rel) currentRelationship = rel;
 
@@ -824,11 +822,18 @@
 
       updateHeaderDisplay();
       closeIdentityModal();
+
+      // Whenever changing personas, clear out conversation history
+      if (changed) {
+        lastHandledAlertId = null;
+        resetChatStreamForCurrentPersona();
+      }
     }
 
-    // Modal pops up EVERY TIME the mobile app is opened
+    // Modal pops up on load, and resets stream for selected persona
     window.addEventListener('DOMContentLoaded', () => {
       updateHeaderDisplay();
+      resetChatStreamForCurrentPersona();
       openIdentityModal();
     });
 
@@ -839,6 +844,7 @@
       input.focus();
     }
 
+    // Renders the Anchor Shield Alert for authorized family and caregivers
     function renderMaliciousWarningCard(data) {
       const chatStream = document.getElementById('chatStream');
       const warningCard = document.createElement('div');
@@ -911,13 +917,28 @@
         }
 
         const statusEl = bubbleRow.querySelector('.bubble-status');
-        statusEl.textContent = data.is_malicious ? 'Blocked by Shield' : 'Delivered';
 
+        // SENDER PRIVACY & SECURITY ROUTING:
+        // A malicious/unknown sender only gets standard "Delivered" and NEVER gets the detection diagnosis!
         if (data.is_malicious || data.blocked_from_patient) {
+          statusEl.textContent = 'Delivered';
+
           if (data.event_id) {
             lastHandledAlertId = data.event_id;
           }
-          renderMaliciousWarningCard(data);
+
+          // Only authorized family/caregiver personas see the Shield Alert card
+          if (isFamilyOrCaregiver()) {
+            renderMaliciousWarningCard(data);
+          }
+          return;
+        }
+
+        // SAFE GROUNDED MESSAGE DELIVERY
+        statusEl.textContent = 'Delivered';
+
+        // For non-family unknown senders, don't show internal biometric telemetry cards
+        if (!isFamilyOrCaregiver()) {
           return;
         }
 
@@ -988,9 +1009,9 @@
       }
     }
 
-    // Caregiver Monitoring Poller: receives intercepted scam alerts in real-time
+    // Live Security Alert Poller for all Family and Caregivers
     setInterval(async () => {
-      if (!isCaregiverMode()) return;
+      if (!isFamilyOrCaregiver()) return;
 
       try {
         const res = await fetch('/api/caregiver/alerts/latest');

@@ -152,15 +152,21 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
             detail=f"Failed to process message from {source}: {exc}",
         ) from exc
 
-    # Record malicious alerts so caregivers monitoring in Caregiver mode receive them immediately
+    # Record malicious alerts so family and caregivers monitoring receive them immediately
     if result.get("is_malicious") or result.get("blocked_from_patient"):
         _caregiver_alerts.append(result)
 
     print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
 
-    # If incoming via Twilio SMS, return TwiML XML so the sender/caregiver gets an immediate text reply
+    # If incoming via external Twilio SMS
     if is_form and ("From" in payload or "AccountSid" in payload):
-        caregiver_msg = result.get("caregiver_reply", "Anchor: Message processed.")
+        # A malicious sender is NEVER given the detection reason or internal alert details
+        if result.get("is_malicious"):
+            twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>"""
+            return Response(content=twiml_response, media_type="application/xml")
+
+        caregiver_msg = result.get("caregiver_reply", "Anchor: Message delivered and grounded.")
         twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Message>{caregiver_msg}</Message>
@@ -232,7 +238,7 @@ async def get_most_recent_event():
 
 @app.get("/api/caregiver/alerts")
 async def list_caregiver_alerts():
-    """Returns intercepted scam/malicious alerts for caregiver monitoring."""
+    """Returns intercepted scam/malicious alerts for family and caregiver monitoring."""
     alerts = list(_caregiver_alerts)
     alerts.reverse()
     return {"alerts": alerts}
@@ -257,7 +263,7 @@ async def get_audio_stream(audio_id: str):
 @app.get("/text", response_class=HTMLResponse)
 @app.get("/mobile", response_class=HTMLResponse)
 async def serve_mobile_caregiver():
-    """Serves the mobile Caregiver iMessage interface."""
+    """Serves the mobile iMessage interface for family, caregivers, and senders."""
     return render_template("mobile.html")
 
 
