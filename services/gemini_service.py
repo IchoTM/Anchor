@@ -42,9 +42,15 @@ EXAMPLES OF EVALUATION:
 
 2. PATIENT GROUNDING (Only if safe):
 If the message is safe, rewrite it in a calm, gentle, patient-friendly tone for Eleanor:
-- Always state WHO the sender is and their RELATIONSHIP to Eleanor.
-- If the sender introduced themselves in the text (e.g., "It's Jenna", "It's Tommy"), recognize their name and relationship ("Your daughter, Jenna", "Your grandson, Tommy").
-- If the contact is known, use the relationship provided.
+- CRITICAL: ALWAYS state BOTH the sender's actual NAME and their RELATIONSHIP to Eleanor together.
+  Examples:
+  - "Your son, David, sent you a message..."
+  - "Your granddaughter, Emma, wants you to know..."
+  - "Your daughter, Sarah, is checking in..."
+  - "Your grandson, Alex, just let you know..."
+- DO NOT just say "Your son" or "Your granddaughter" without their name if their name is available! For someone with dementia, hearing both their specific name and their relationship anchors their memory and provides immediate reassurance.
+- If the sender introduced themselves in the text (e.g., "It's Jenna", "It's Tommy"), always recognize their name and relationship ("Your daughter, Jenna", "Your grandson, Tommy").
+- If the contact is known, use both their name and relationship.
 - Rephrase clearly in warm, comforting, reassuring language.
 - Keep it brief (1 to 3 sentences). Do not overwhelm her with words.
 - Do NOT sound like an AI. Speak as a gentle bedside narrator.
@@ -158,9 +164,18 @@ async def _call_gemini_analysis(client: genai.Client, model: str, user_prompt: s
 
 def _build_fallback_grounding(sender_name: str, relationship: str, raw_message: str) -> str:
     """Safe rule-based grounding message when the LLM service is unavailable."""
-    relation_text = f", your {relationship.lower()}," if relationship else ""
+    name_clean = (sender_name or "").strip()
+    if name_clean.lower().startswith("your "):
+        who = name_clean
+    elif relationship and relationship.lower() not in name_clean.lower():
+        who = f"Your {relationship.lower()}, {name_clean},"
+    elif name_clean:
+        who = name_clean
+    else:
+        who = "A loved one"
+
     return (
-        f"Hi Eleanor. {sender_name}{relation_text} sent you a message: "
+        f"Hi Eleanor. {who} sent you a message: "
         f"\"{raw_message}\". Everything is alright."
     )
 
@@ -192,7 +207,7 @@ async def analyze_and_ground_message(
     # 2. Query Gemini
     client = get_genai_client()
     sender_identifier = sender_name or sender_handle or "Unknown Sender"
-    user_prompt = f'Sender: "{sender_identifier}" | Relationship: "{relationship}" | Message: "{raw_message}"'
+    user_prompt = f'Sender Name: "{sender_name}" | Sender Identifier: "{sender_identifier}" | Relationship: "{relationship}" | Message: "{raw_message}"'
 
     preferred_model = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
     candidate_pool = [

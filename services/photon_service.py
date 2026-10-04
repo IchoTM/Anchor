@@ -33,6 +33,7 @@ DEFAULT_CONTACTS: Dict[str, Dict[str, Any]] = {
     "Alex": {"name": "Alex", "relationship": "Grandson", "phone_number": "+15551234567", "photo_url": "/static/avatars/alex.jpg"},
     "Sarah": {"name": "Sarah", "relationship": "Daughter", "photo_url": "/static/avatars/sarah.jpg"},
     "David": {"name": "David", "relationship": "Son", "photo_url": "/static/avatars/david.jpg"},
+    "Emma": {"name": "Emma", "relationship": "Granddaughter", "photo_url": "/static/avatars/sarah.jpg"},
     "Maria": {"name": "Maria", "relationship": "Caregiver", "phone_number": "+15559876543", "is_caregiver": True, "photo_url": "/static/avatars/maria.jpg"},
     "Grandpa": {"name": "Grandpa", "relationship": "Husband", "phone_number": "+15550192", "photo_url": "/static/avatars/grandpa.jpg"},
     "Dr. Chen": {"name": "Dr. Chen", "relationship": "Doctor", "photo_url": "/static/avatars/chen.jpg"},
@@ -43,6 +44,7 @@ AVATAR_NAME_PATTERNS: Dict[str, str] = {
     "alex": "/static/avatars/alex.jpg",
     "sarah": "/static/avatars/sarah.jpg",
     "david": "/static/avatars/david.jpg",
+    "emma": "/static/avatars/sarah.jpg",
     "maria": "/static/avatars/maria.jpg",
     "grandpa": "/static/avatars/grandpa.jpg",
     "chen": "/static/avatars/chen.jpg",
@@ -95,30 +97,125 @@ def _normalize_identifier(identifier: str) -> str:
     return digits if digits else str(identifier).strip().lower()
 
 
+def _is_phone_string(s: str) -> bool:
+    """Checks whether a string represents a phone number rather than a person's name."""
+    if not s:
+        return False
+    s_clean = s.strip()
+    if s_clean.startswith("+"):
+        return True
+    digits = re.sub(r"\D", "", s_clean)
+    non_phone_chars = re.sub(r"[\d\s\-\(\)\+\.]", "", s_clean)
+    if len(non_phone_chars) == 0 and len(digits) >= 7:
+        return True
+    if s_clean.lower().startswith("phone"):
+        return True
+    return False
+
+
+def _phones_match(p1: str, p2: str) -> bool:
+    """Matches phone numbers across different national/international formats."""
+    d1 = re.sub(r"\D", "", str(p1 or ""))
+    d2 = re.sub(r"\D", "", str(p2 or ""))
+    if not d1 or not d2:
+        return False
+    if d1 == d2:
+        return True
+    # Match 10-digit national number suffixes (e.g. +1 555-123-4567 vs 5551234567)
+    if len(d1) >= 10 and len(d2) >= 10 and d1[-10:] == d2[-10:]:
+        return True
+    return False
+
+
+def extract_name_from_text(text: str) -> Optional[Tuple[str, Optional[str]]]:
+    """
+    Extracts sender name and optional relationship if self-introduced in the text.
+    Examples:
+      - "Hey Grandma, it's Tommy, just landed..." -> ("Tommy", "Grandson")
+      - "Hi Mom, it's David from my new phone" -> ("David", "Son")
+      - "Hi Eleanor, it's your granddaughter, Emma!" -> ("Emma", "Granddaughter")
+      - "Hey Nana, it's Sarah" -> ("Sarah", "Granddaughter")
+    """
+    if not text:
+        return None
+
+    # Pattern 1: "it's your (granddaughter|grandson|daughter|son),? ([A-Z][a-z]+)"
+    m1 = re.search(
+        r"\b(?:it's|its|this is|i'm|im)\s+your\s+(granddaughter|grandson|daughter|son|caregiver)[,\s]+([A-Z][a-z]+)\b",
+        text,
+        re.IGNORECASE,
+    )
+    if m1:
+        rel = m1.group(1).capitalize()
+        name = m1.group(2).capitalize()
+        return name, rel
+
+    # Pattern 2: "it's ([A-Z][a-z]+),? your (granddaughter|grandson|daughter|son)"
+    m2 = re.search(
+        r"\b(?:it's|its|this is|i'm|im)\s+([A-Z][a-z]+)[,\s]+your\s+(granddaughter|grandson|daughter|son)\b",
+        text,
+        re.IGNORECASE,
+    )
+    if m2:
+        name = m2.group(1).capitalize()
+        rel = m2.group(2).capitalize()
+        return name, rel
+
+    # Pattern 3: Greeting + title + "it's [Name]"
+    m3 = re.search(
+        r"\b(?:hey|hi|hello)\s+(grandma|grandpa|mom|mum|dad|nana|eleanor)[,!.]*\s+(?:it's|its|this is|i'm|im)\s+([A-Z][a-z]+)\b",
+        text,
+        re.IGNORECASE,
+    )
+    if m3:
+        title = m3.group(1).lower()
+        name = m3.group(2).capitalize()
+        inferred_rel = None
+        if title in ("grandma", "nana"):
+            inferred_rel = "Grandchild"
+        elif title in ("mom", "mum"):
+            inferred_rel = "Child"
+        return name, inferred_rel
+
+    # Pattern 4: Simple "it's [Name]" / "this is [Name]"
+    m4 = re.search(r"\b(?:it's|its|this is)\s+([A-Z][a-z]+)\b", text, re.IGNORECASE)
+    if m4:
+        name = m4.group(1).capitalize()
+        stopwords = {
+            "me", "time", "sunny", "cold", "hot", "great", "okay", "ok", "fine",
+            "ready", "here", "just", "so", "all", "not", "too", "important", "urgent",
+        }
+        if name.lower() not in stopwords:
+            return name, None
+
+    return None
+
+
 def verify_contact(sender_handle: str, sender_name: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """
-    Strictly verifies whether a sender's handle or phone number exists in the authorized contact directory.
-    Prevents unverified numbers from spoofing verified contact names.
+    Verifies whether a sender's handle, phone number, or name exists in the contact directory.
     """
     contacts = get_contact_directory()
-    handle_norm = _normalize_identifier(sender_handle)
     name_norm = (sender_name or "").strip().lower()
 
-    for key, info in contacts.items():
-        key_norm = _normalize_identifier(key)
+    # 1. Match by handle or phone number
+    if sender_handle:
+        for key, info in contacts.items():
+            if _phones_match(sender_handle, key):
+                return True, info
+            contact_phone = info.get("phone_number", "")
+            if contact_phone and _phones_match(sender_handle, contact_phone):
+                return True, info
+            if key.strip().lower() == sender_handle.strip().lower():
+                return True, info
 
-        # 1. Exact or normalized handle/phone match
-        if key == sender_handle or (handle_norm and handle_norm == key_norm):
-            return True, info
-
-        # 2. Check if contact definition has an explicit phone_number field matching handle
-        contact_phone = _normalize_identifier(info.get("phone_number", ""))
-        if handle_norm and contact_phone and handle_norm == contact_phone:
-            return True, info
-
-        # 3. Match name ONLY if sender_handle is empty or matches key directly
-        if name_norm and name_norm == key.lower():
-            if not sender_handle or sender_handle == key:
+    # 2. Match by contact name (ignoring phone strings)
+    if name_norm and not _is_phone_string(sender_name):
+        clean_name = re.sub(r"^your\s+", "", name_norm)
+        for key, info in contacts.items():
+            key_clean = key.strip().lower()
+            info_name = str(info.get("name", "")).strip().lower()
+            if clean_name == key_clean or clean_name == info_name:
                 return True, info
 
     return False, None
@@ -150,7 +247,7 @@ def get_caregiver_recipients(exclude_handle: str = "") -> List[Dict[str, str]]:
             continue
 
         phone_norm = _normalize_identifier(phone)
-        if excluded_norm and phone_norm == excluded_norm:
+        if excluded_norm and (phone_norm == excluded_norm or _phones_match(phone, exclude_handle)):
             # SENDER IS COMPROMISED: Exclude them from caregiver alert dispatch!
             continue
 
@@ -162,7 +259,7 @@ def get_caregiver_recipients(exclude_handle: str = "") -> List[Dict[str, str]]:
                 "relationship": info.get("relationship", "Caregiver"),
             })
 
-    # 2. Collect from environment variables (e.g. CAREGIVER_PHONE_NUMBER or CAREGIVER_PHONE_NUMBERS)
+    # 2. Collect from environment variables
     env_numbers = []
     for var_name in ("CAREGIVER_PHONE_NUMBER", "PRIMARY_CAREGIVER_PHONE", "CAREGIVER_PHONE_NUMBERS"):
         val = os.getenv(var_name, "").strip()
@@ -174,8 +271,7 @@ def get_caregiver_recipients(exclude_handle: str = "") -> List[Dict[str, str]]:
 
     for phone in env_numbers:
         phone_norm = _normalize_identifier(phone)
-        if excluded_norm and phone_norm == excluded_norm:
-            # Compromised sender match: skip
+        if excluded_norm and (phone_norm == excluded_norm or _phones_match(phone, exclude_handle)):
             continue
 
         if phone_norm not in seen_identifiers:
@@ -194,7 +290,6 @@ def _load_image_bytes(photo_url: str) -> Optional[bytes]:
     if not photo_url:
         return None
 
-    # Handle local static path (e.g., /static/avatars/alex.jpg)
     if photo_url.startswith("/static/"):
         relative_path = photo_url.replace("/static/", "", 1)
         file_path = STATIC_DIR / relative_path
@@ -205,7 +300,6 @@ def _load_image_bytes(photo_url: str) -> Optional[bytes]:
                 print(f"[Anchor Warning] Could not read local image {file_path}: {exc}")
                 return None
 
-    # Handle data URI (base64)
     if photo_url.startswith("data:image/") and ";base64," in photo_url:
         try:
             _, b64_data = photo_url.split(";base64,", 1)
@@ -214,7 +308,6 @@ def _load_image_bytes(photo_url: str) -> Optional[bytes]:
             print(f"[Anchor Warning] Failed to decode base64 avatar: {exc}")
             return None
 
-    # Handle remote HTTP/HTTPS URL
     if photo_url.startswith("http://") or photo_url.startswith("https://"):
         try:
             req = urllib.request.Request(photo_url, headers={"User-Agent": "Anchor-Dementia-Station/1.0"})
@@ -340,13 +433,15 @@ def resolve_contact_photo(
 
     if explicit_photo_url and explicit_photo_url.strip():
         resolved_url = explicit_photo_url.strip()
-    elif is_verified:
+    else:
         contacts = get_contact_directory()
+        # Try handle match
         if sender_handle in contacts and contacts[sender_handle].get("photo_url"):
             resolved_url = contacts[sender_handle]["photo_url"]
         elif sender_name in contacts and contacts[sender_name].get("photo_url"):
             resolved_url = contacts[sender_name]["photo_url"]
         else:
+            # Check heuristic avatar name patterns
             sender_lower = (sender_name or "").lower().strip()
             for pattern, path in AVATAR_NAME_PATTERNS.items():
                 if pattern in sender_lower:
@@ -362,7 +457,7 @@ def resolve_contact_photo(
 def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, Optional[str], bool]:
     """
     Extracts (sender_name, relationship, raw_message, sender_handle, sender_photo_url, is_verified_contact)
-    from various Photon / Spectrum / Twilio / SMS webhook payload structures.
+    with robust contact name resolution.
     """
     data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
 
@@ -382,7 +477,7 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
     elif isinstance(data.get("message"), str):
         raw_message = data["message"]
 
-    # 2. Extract sender info
+    # 2. Extract sender info from dict or string
     sender_raw = data.get("sender") or data.get("from") or data.get("From") or data.get("author") or {}
     metadata = data.get("metadata") or {}
 
@@ -408,48 +503,108 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
         if not explicit_photo:
             explicit_photo = sender_raw.get("photo_url") or sender_raw.get("avatar") or sender_raw.get("image")
     elif isinstance(sender_raw, str):
-        sender_name = sender_raw
-        sender_handle = sender_raw
+        if _is_phone_string(sender_raw):
+            sender_handle = sender_raw
+        else:
+            sender_name = sender_raw
+            sender_handle = sender_raw
 
-    # Fallback to top-level fields
-    if not sender_name and "sender_name" in data:
-        sender_name = str(data["sender_name"])
-    if not sender_handle and "identifier" in data:
-        sender_handle = str(data["identifier"])
-    if not sender_handle and "handle" in data:
-        sender_handle = str(data["handle"])
-    if not sender_handle and "From" in data:
-        sender_handle = str(data["From"])
+    # Explicit top-level fields always take priority over raw string fallbacks
+    if data.get("sender_name"):
+        sender_name = str(data["sender_name"]).strip()
+    elif data.get("name"):
+        sender_name = str(data["name"]).strip()
+    elif data.get("contact_name"):
+        sender_name = str(data["contact_name"]).strip()
+
+    if data.get("relationship"):
+        relationship = str(data["relationship"]).strip()
+    elif data.get("sender_relationship"):
+        relationship = str(data["sender_relationship"]).strip()
+
+    if not sender_handle:
+        if data.get("identifier"):
+            sender_handle = str(data["identifier"]).strip()
+        elif data.get("handle"):
+            sender_handle = str(data["handle"]).strip()
+        elif data.get("From"):
+            sender_handle = str(data["From"]).strip()
+        elif data.get("phone"):
+            sender_handle = str(data["phone"]).strip()
+        elif data.get("phone_number"):
+            sender_handle = str(data["phone_number"]).strip()
+
+    if not relationship and isinstance(metadata, dict):
+        relationship = str(metadata.get("relationship", "")).strip()
 
     # 3. Contact verification against directory
     is_verified, contact_info = verify_contact(sender_handle, sender_name)
 
     if is_verified and contact_info:
         relationship = relationship or contact_info.get("relationship", "")
-        if not sender_name or sender_name == sender_handle:
-            sender_name = contact_info.get("name", sender_handle)
+        # If sender_name is missing or is just a phone number, use the verified directory name
+        if not sender_name or _is_phone_string(sender_name):
+            sender_name = contact_info.get("name", sender_name)
     else:
-        if not relationship and isinstance(metadata, dict):
-            relationship = metadata.get("relationship", "")
+        # Cross-reference known contacts by relationship or name if handle was unverified
+        contacts = get_contact_directory()
+        if sender_name and not _is_phone_string(sender_name):
+            clean_check = re.sub(r"^your\s+", "", sender_name.lower().strip())
+            for key, info in contacts.items():
+                if info.get("name", "").lower() == clean_check:
+                    is_verified = True
+                    contact_info = info
+                    relationship = relationship or info.get("relationship", "")
+                    sender_name = info.get("name", sender_name)
+                    break
 
-    # Clean identifier checks
-    clean_sender = (sender_name or "").strip()
-    is_phone_identifier = (
-        clean_sender.startswith("+")
-        or clean_sender.lower().startswith("phone")
-        or (clean_sender.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace(".", "").isdigit())
-    )
+        # If sender_name is still a generic relationship string ("Son", "Granddaughter") or phone number:
+        generic_relationship_names = {
+            "son", "daughter", "grandson", "granddaughter", "husband", "caregiver", "doctor"
+        }
+        rel_to_check = relationship or (sender_name if sender_name.lower().strip() in generic_relationship_names else "")
+        if (not sender_name or _is_phone_string(sender_name) or sender_name.lower().strip() in generic_relationship_names) and rel_to_check:
+            for key, info in contacts.items():
+                if str(info.get("relationship", "")).lower() == rel_to_check.lower():
+                    sender_name = info.get("name", sender_name)
+                    if not explicit_photo:
+                        explicit_photo = info.get("photo_url")
+                    break
 
-    if not sender_handle and clean_sender:
-        sender_handle = clean_sender
+    # 4. Check if the sender introduced themselves in the text (e.g. "Hey Grandma, it's Tommy")
+    extracted = extract_name_from_text(raw_message)
+    if extracted:
+        extracted_name, extracted_rel = extracted
+        if (
+            not sender_name
+            or _is_phone_string(sender_name)
+            or sender_name.lower().startswith("your ")
+            or sender_name.lower() in ("family or friend", "loved one", "son", "daughter", "grandson", "granddaughter")
+        ):
+            sender_name = extracted_name
+        if extracted_rel and (not relationship or relationship.lower() in ("family member", "loved one", "family or friend")):
+            relationship = extracted_rel
 
-    # Format unverified display names gently for Eleanor
-    if not sender_name or sender_name == sender_handle or is_phone_identifier:
-        if not relationship or "unknown" in relationship.lower():
+    # 5. Clean up any cases where sender_name was passed as "Your Son" or "Your Granddaughter"
+    if sender_name:
+        clean_lower = sender_name.lower().strip()
+        if clean_lower.startswith("your "):
+            potential_rel = clean_lower.replace("your ", "").strip().capitalize()
+            if not relationship or relationship.lower() in ("family member", "loved one"):
+                relationship = potential_rel
+            contacts = get_contact_directory()
+            for key, info in contacts.items():
+                if str(info.get("relationship", "")).lower() == potential_rel.lower():
+                    sender_name = info.get("name", sender_name)
+                    break
+
+    # 6. Fallback only if no human name could be found
+    if not sender_name or _is_phone_string(sender_name):
+        if relationship and "unknown" not in relationship.lower() and "loved one" not in relationship.lower():
+            sender_name = f"Your {relationship}"
+        else:
             sender_name = "Family or Friend"
             relationship = "Loved One"
-        else:
-            sender_name = f"Your {relationship}"
 
     if not relationship:
         relationship = "Family Member"
@@ -463,7 +618,14 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
         is_verified=is_verified,
     )
 
-    return sender_name.strip(), relationship.strip(), raw_message.strip(), sender_handle.strip(), sender_photo_url, is_verified
+    return (
+        sender_name.strip(),
+        relationship.strip(),
+        raw_message.strip(),
+        sender_handle.strip(),
+        sender_photo_url,
+        is_verified,
+    )
 
 
 def generate_caregiver_reply(
@@ -483,7 +645,7 @@ def generate_caregiver_reply(
         else f"Displayed on screen (Vitals stable, {int(hr)} BPM)"
     )
 
-    greeting_target = sender_name if sender_name else "there"
+    greeting_target = sender_name if sender_name and not sender_name.lower().startswith("your ") else "there"
     return (
         f"Hi {greeting_target}, {patient_name} received your message.\n\n"
         f"Anchor grounded it as:\n"
@@ -564,13 +726,8 @@ def _send_webhook_alert_sync(webhook_url: str, payload: Dict[str, Any]) -> bool:
 
 async def dispatch_caregiver_alert(alert_payload: Dict[str, Any], sender_handle: str = "") -> List[str]:
     """
-    Actively dispatches an emergency notification to non-compromised, known caregivers via:
-    1. Twilio SMS to every designated non-compromised caregiver contact.
-    2. HTTP Webhook if CAREGIVER_WEBHOOK_URL is configured.
-    3. Prominent log dispatch for monitoring systems.
-
+    Actively dispatches an emergency notification to non-compromised, known caregivers.
     Strictly skips the sender_handle so compromised accounts/scammers never receive the alert.
-    Returns the list of caregiver identifiers/phones notified.
     """
     warning_text = alert_payload.get("caregiver_security_warning", "")
     caregivers = get_caregiver_recipients(exclude_handle=sender_handle)
@@ -589,7 +746,6 @@ async def dispatch_caregiver_alert(alert_payload: Dict[str, Any], sender_handle:
     twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
     twilio_from = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_FROM_NUMBER")
 
-    # 1. Outbound SMS dispatch to each non-compromised caregiver
     for cg in caregivers:
         phone = cg.get("phone_number")
         name = cg.get("name", "Caregiver")
@@ -606,11 +762,9 @@ async def dispatch_caregiver_alert(alert_payload: Dict[str, Any], sender_handle:
                 notified_list.append(f"{name} ({phone})")
                 print(f"[Anchor Alert] Delivered emergency SMS to caregiver {name} ({phone}).")
         else:
-            # Twilio credentials not configured in local environment; mark logged
             notified_list.append(f"{name} ({phone})")
             print(f"[Anchor Alert] Queued alert for caregiver {name} ({phone}) [Local/Dashboard Mode]")
 
-    # 2. Webhook Dispatch (Slack / Discord / Caregiver Portal)
     caregiver_webhook = os.getenv("CAREGIVER_WEBHOOK_URL")
     if caregiver_webhook:
         print(f"[Anchor Alert] Dispatching webhook alert to caregiver channel...")
@@ -625,16 +779,10 @@ async def process_photon_message(
 ) -> Dict[str, Any]:
     """
     Full pipeline:
-    1. Parse incoming message, sender details, and contact directory verification status.
+    1. Parse incoming message, sender name/relationship, and contact verification.
     2. Scan for malicious / scam behavior via Gemini & security heuristics.
-    3. If malicious:
-       - If unverified/no contact: ZERO response sent back to sender.
-       - If verified family contact: Empathetic 'Caregiver Review' hold notice sent.
-       - In ALL malicious cases: Suppress bedside station & actively alert non-compromised caregivers.
-    4. If safe:
-       - Ground message via Gemini for Eleanor.
-       - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
-       - Post safe grounded card to Eleanor's tablet queue.
+    3. If malicious: Suppress bedside station & alert non-compromised caregivers.
+    4. If safe: Ground message for Eleanor and gate ElevenLabs TTS via Presage vitals.
     """
     sender_name, relationship, raw_message, sender_handle, sender_photo_url, is_verified = parse_photon_payload(payload)
     print(
@@ -670,8 +818,6 @@ async def process_photon_message(
             is_verified_contact=is_verified,
         )
 
-        # Policy: If unverified / no contact -> NO RESPONSE back to sender.
-        # If verified contact -> Safety hold notice.
         sender_reply = generate_safety_hold_notice(sender_name, relationship) if is_verified else None
 
         result_event = {
@@ -698,13 +844,12 @@ async def process_photon_message(
             "caregivers_notified": [],
         }
 
-        # Actively alert non-compromised caregivers immediately
         notified = await dispatch_caregiver_alert(result_event, sender_handle=sender_handle)
         result_event["caregivers_notified"] = notified
 
         return result_event
 
-    # SAFE MESSAGE BRANCH (Genuine family members, visits, or benign greetings from new numbers)
+    # SAFE MESSAGE BRANCH
     grounded_message = str(analysis.get("grounded_message", "")).strip()
     print(f"[Anchor Pipeline] Grounded text: '{grounded_message}'")
 
@@ -765,7 +910,6 @@ async def process_photon_message(
         "caregivers_notified": [],
     }
 
-    # Only safe, grounded events are posted to Eleanor's tablet queue
     async with _events_lock:
         _recent_events.append(result_event)
 
