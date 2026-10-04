@@ -225,10 +225,13 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
         result["audio_url"] = None
         result["chime_url"] = None
 
+        # SECURITY: Strip internal AI reasoning from the in-band sender response
+        # so attackers cannot probe keyword rules or bypass triggers.
+        result["malicious_reason"] = None
+
         # Dual-Tier Feedback Policy:
         # Tier 1 (Unknown Sender): Silent Blackhole (zero reply, prevents reconnaissance).
         # Tier 2 (Known Family Contact): Empathetic "Held in Caregiver Review" notice.
-        # This gracefully handles false positives by prompting family to call, while halting compromised accounts.
         if is_known:
             result["caregiver_reply"] = _generate_safety_hold_notice(sender_name, relationship)
         else:
