@@ -456,6 +456,7 @@
       display: flex;
       align-items: center;
       gap: 16px;
+      margin-left: auto;
     }
 
     /* Dementia-optimized touch buttons: high contrast, clear descriptive text, large targets */
@@ -705,14 +706,14 @@
       </div>
 
       <div class="message-footer-bar">
-        <div class="voice-status-group" id="voiceStatusGroup">
+        <div class="voice-status-group" id="voiceStatusGroup" style="display: none;">
           <div class="waveform-bars" id="waveformBars">
             <div class="wave-line"></div>
             <div class="wave-line"></div>
             <div class="wave-line"></div>
             <div class="wave-line"></div>
           </div>
-          <span class="voice-caption" id="voiceCaption">Message displayed</span>
+          <span class="voice-caption" id="voiceCaption"></span>
         </div>
 
         <div class="card-actions">
@@ -1122,6 +1123,7 @@
 
       if (data.audio_generated && data.audio_url) {
         currentAudioUrl = data.audio_url;
+        voiceGroup.style.display = 'flex';
         replayBtn.style.display = 'inline-flex';
         voiceCaption.textContent = 'Speaking gentle message...';
         voiceGroup.classList.add('speaking');
@@ -1157,8 +1159,9 @@
       } else {
         currentAudioUrl = null;
         replayBtn.style.display = 'none';
+        voiceGroup.style.display = 'none';
         voiceGroup.classList.remove('speaking');
-        voiceCaption.textContent = 'Message displayed clearly';
+        voiceCaption.textContent = '';
         scheduleAutoDismiss(35);
       }
     }
@@ -1172,6 +1175,7 @@
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
+        voiceGroup.style.display = 'flex';
         audioEl.src = currentAudioUrl;
         audioEl.currentTime = 0;
         audioEl.play().then(() => {
