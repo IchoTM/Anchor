@@ -234,7 +234,7 @@
       line-height: 1.35;
     }
 
-    /* Streamlined Sundowning Orientation Anchor (Zero clutter, gentle reassurance) */
+    /* Streamlined Sundowning Orientation Anchor */
     .ambient-orientation-anchor {
       font-size: clamp(20px, 2.4vw, 25px);
       font-weight: 600;
@@ -283,7 +283,7 @@
       transform: translateY(-2px);
     }
 
-    /* Scientifically Designed Dementia Message Card */
+    /* Message Stage Card */
     .message-stage-card {
       background: #0d1522;
       border: 3.5px solid #64748b;
@@ -324,7 +324,7 @@
       flex: 1;
     }
 
-    /* Prominent Bedside Contact Photo - Scaled according to Dementia HCI Standards (200px-280px) */
+    /* Bedside Contact Photo - Scaled according to Dementia HCI Standards (200px-280px) */
     .sender-avatar-wrapper {
       position: relative;
       width: clamp(200px, 24vw, 280px);
@@ -387,7 +387,6 @@
       line-height: 1.15;
     }
 
-    /* Scientifically optimized relationship cue: Warm Amber/Gold is easier for aging eyes */
     .sender-relationship-badge {
       display: inline-flex;
       align-items: center;
@@ -412,7 +411,7 @@
       white-space: nowrap;
     }
 
-    /* Fail-Safe Multi-Message Queue Indicator */
+    /* Queue Indicator */
     .queue-indicator-badge {
       display: inline-flex;
       align-items: center;
@@ -520,7 +519,6 @@
       margin-left: auto;
     }
 
-    /* Dementia-optimized touch buttons: high contrast, clear descriptive text, large targets */
     .btn-action-replay {
       background: #1e293b;
       border: 2.5px solid #94a3b8;
@@ -743,7 +741,7 @@
       <div class="time-clinical" id="clockTime">--:--</div>
       <div class="date-clinical" id="clockDate">Loading date...</div>
 
-      <!-- Integrated Sundowning & Orientation Reassurance (Quiet, Clutter-Free) -->
+      <!-- Integrated Sundowning & Orientation Reassurance -->
       <div class="ambient-orientation-anchor" id="ambientOrientationAnchor">
         Safe at home in <strong>Room 3B</strong> • Your family is thinking of you
       </div>
@@ -824,7 +822,7 @@
         <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">Simulation Console</button>
       </div>
 
-      <p id="qrDesc" style="font-size: 15px; color: #cbd5e1; line-line-height: 1.45;">
+      <p id="qrDesc" style="font-size: 15px; color: #cbd5e1; line-height: 1.45;">
         Scan with any smartphone camera to open the family iMessage interface and text Eleanor.
       </p>
 
@@ -869,7 +867,7 @@
     // Contextual Sundowning Grounding Cues tailored to typical panic hours
     function getSundowningReassurance(hour) {
       if (hour >= 16 && hour < 21) {
-        // Peak Sundowning window (4 PM - 9 PM): Alleviates the "I need to go to work/pack" urge
+        // Peak Sundowning window (4 PM - 9 PM): Alleviates the urge to leave
         return 'Safe at home for the evening • <strong>Everything is taken care of</strong>';
       } else if (hour >= 21 || hour < 5) {
         // Night disorientation: Reassures resting place
@@ -1051,7 +1049,6 @@
       }
     }
 
-    // Safe gentle earcon trigger
     function playOrientingChime(volume = 0.55) {
       const chimeEl = document.getElementById('chimeElement');
       if (!chimeEl) return Promise.resolve();
@@ -1073,19 +1070,15 @@
       window.addEventListener(eventName, () => unlockAudio(false), { once: true, passive: true });
     });
 
-    // Clean Dementia-Friendly Monogram & Silhouette Renderer
+    // Monogram & Silhouette Renderer
     function renderFallbackAvatar(monogramEl, name, relationship) {
       if (!monogramEl) return;
 
-      // Extract only alphabetic characters
       const cleanName = (name || '').trim();
       const alphaOnly = cleanName.replace(/[^a-zA-Z\s]/g, '').trim();
-
-      // Check if this is a phone number or unsaved contact without clean letters
       const isPhoneOrSymbol = !alphaOnly || cleanName.startsWith('+') || cleanName.toLowerCase().startsWith('phone');
 
       if (isPhoneOrSymbol) {
-        // Render a warm, reassuring persona silhouette SVG instead of cryptic "+(" or raw numbers
         monogramEl.style.background = 'linear-gradient(135deg, #0d9488, #0284c7)';
         monogramEl.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1096,7 +1089,6 @@
         return;
       }
 
-      // Valid letters exist: generate a 2-letter clean monogram
       const parts = alphaOnly.split(/\s+/).filter(Boolean);
       let letters = 'FM';
       if (parts.length === 1) {
@@ -1109,7 +1101,6 @@
       monogramEl.textContent = letters;
     }
 
-    // Resolves a dementia-safe, non-alarming display name for Eleanor's screen
     function getDementiaSafeDisplayName(rawName, relationship) {
       const clean = (rawName || '').trim();
       const isPhone = clean.startsWith('+') || clean.toLowerCase().startsWith('phone') || /^[0-9\s\(\)\-\.]+$/.test(clean);
@@ -1128,7 +1119,6 @@
       return clean;
     }
 
-    // Resolves a calming relationship badge text
     function getDementiaSafeRelationship(relationship) {
       const rel = (relationship || '').trim();
       if (!rel || rel.toLowerCase().includes('unknown')) {
@@ -1141,11 +1131,9 @@
     async function applySmartFaceFocus(imgEl) {
       if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) return;
 
-      // Reset transformations
       imgEl.style.objectPosition = '50% 50%';
       imgEl.style.transform = 'scale(1)';
 
-      // 1. Native Shape Detection API (window.FaceDetector)
       if ('FaceDetector' in window) {
         try {
           const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
@@ -1174,7 +1162,6 @@
         }
       }
 
-      // 2. Client-side heuristic scan (detects facial/skin center of mass)
       try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -1212,7 +1199,6 @@
         }
       } catch (err) {}
 
-      // 3. Fallback: Upper-third bias
       imgEl.style.objectPosition = '50% 30%';
       imgEl.style.transformOrigin = '50% 30%';
       imgEl.style.transform = 'scale(1.1)';
@@ -1265,14 +1251,12 @@
         chimeEl.pause();
       }
 
-      // If more messages are queued, transition smoothly to next message
       if (messageQueue.length > 0) {
         const nextMessage = messageQueue.shift();
         renderMessageCard(nextMessage, true);
         return;
       }
 
-      // No more queued messages: return to ambient view
       dismissMessageCard();
     }
 
@@ -1321,7 +1305,6 @@
         messageAutoDismissTimer = null;
       }
 
-      // If more messages exist in queue, auto-advance after patient reading window
       if (messageQueue.length > 0) {
         const elapsed = Date.now() - activeCardStartTime;
         const remainingReadingTime = Math.max(2000, MIN_READING_DURATION_MS - elapsed);
@@ -1329,7 +1312,6 @@
           handleCardDismissOrNext();
         }, remainingReadingTime);
       } else {
-        // Standard idle timeout before returning to clock
         messageAutoDismissTimer = setTimeout(() => {
           dismissMessageCard();
         }, 32000);
@@ -1350,7 +1332,6 @@
       const ambient = document.getElementById('ambientClockView');
       const recallBtn = document.getElementById('btnRecallMessage');
 
-      // Update multimodal contact visual
       const photoEl = document.getElementById('senderPhoto');
       const monogramEl = document.getElementById('senderMonogram');
 
@@ -1371,7 +1352,6 @@
         renderFallbackAvatar(monogramEl, data.sender_name, data.relationship);
       }
 
-      // Update contents with dementia-safe labels (no cryptic raw phone numbers or "+(" punctuation)
       const safeName = getDementiaSafeDisplayName(data.sender_name, data.relationship);
       const safeRel = getDementiaSafeRelationship(data.relationship);
 
@@ -1392,21 +1372,16 @@
       card.classList.add('visible');
       if (recallBtn) recallBtn.style.display = 'none';
 
-      // 1. Play gentle orienting earcon chime to draw Eleanor's eyes without startle
       if (autoPlaySound) {
         playOrientingChime(0.55);
       }
 
-      // 2. Choreograph ElevenLabs Anchor speech or ambient dwell
       if (data.audio_generated && data.audio_url) {
         currentAudioUrl = data.audio_url;
         voiceGroup.style.display = 'flex';
         replayBtn.style.display = 'inline-flex';
 
         if (autoPlaySound) {
-          // Visual Priming Period:
-          // Give Eleanor 2.0 seconds to hear the warm chime and visually register the sender's face
-          // before the Anchor voice starts speaking. Eliminates disembodied voice anxiety.
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = `A message from ${safeName}...`;
 
@@ -1422,14 +1397,12 @@
 
             audioEl.src = data.audio_url;
             audioEl.currentTime = 0;
-            // Soft ramp-up: start quiet to prevent acoustic startle peaks
             audioEl.volume = 0.25;
 
             const playPromise = audioEl.play();
             if (playPromise !== undefined) {
               playPromise.then(() => {
                 markSoundActive();
-                // Gentle fade-in over 400ms
                 let vol = 0.25;
                 const fadeInterval = setInterval(() => {
                   vol = Math.min(1.0, vol + 0.15);
@@ -1446,12 +1419,11 @@
             audioEl.onended = () => {
               voiceGroup.classList.remove('speaking');
               voiceCaption.textContent = 'Spoken message finished';
-              // Allow 6 seconds contemplation after audio finishes before auto-advancing
               setTimeout(() => {
                 scheduleAutoTransition();
               }, 6000);
             };
-          }, 2000); // 2.0s clinical visual & chime priming window
+          }, 2000);
         } else {
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = 'Voice message ready';
@@ -1507,7 +1479,6 @@
       }
     }
 
-    // Fail-Safe Inbound Ingestion with Pacing Controller
     function ingestIncomingMessage(data) {
       if (data.is_malicious || data.blocked_from_patient) {
         return;
@@ -1520,30 +1491,25 @@
         seenEventIds.add(data.event_id);
       }
 
-      // If screen is idle, show immediately
       if (!isCardVisible) {
         renderMessageCard(data, true);
         return;
       }
 
-      // Fail-Safe: If already displaying a message, check if patient has had sufficient reading time
       const elapsed = Date.now() - activeCardStartTime;
       const audioEl = document.getElementById('audioElement');
       const isSpeaking = audioEl && !audioEl.paused && !audioEl.ended;
 
       if (elapsed < MIN_READING_DURATION_MS || isSpeaking) {
-        // Queue the message to protect Grandma from jarring abrupt switches
         messageQueue.push(data);
         updateQueueUI();
         console.log(`[Anchor Queue]: Paced incoming message from ${data.sender_name}. ${messageQueue.length} in queue.`);
         scheduleAutoTransition();
       } else {
-        // Patient has finished reading previous message; smooth transition
         renderMessageCard(data, true);
       }
     }
 
-    // Modal & QR Code logic
     async function resolveMobileBaseUrl() {
       try {
         const resp = await fetch('/api/tunnel-url');
@@ -1598,7 +1564,6 @@
       document.getElementById('qrModal').style.display = 'none';
     }
 
-    // Safe Background poller fetching events in chronological order to detect concurrent texts
     let initialSyncCompleted = false;
 
     setInterval(async () => {
@@ -1606,7 +1571,6 @@
         const res = await fetch('/api/events?order=chronological&limit=15');
         const data = await res.json();
         if (data.events && Array.isArray(data.events)) {
-          // On cold boot, initialize seen set with existing event IDs so we don't spam historical texts
           if (!initialSyncCompleted) {
             data.events.forEach(evt => {
               if (evt && evt.event_id) seenEventIds.add(evt.event_id);
@@ -1615,7 +1579,6 @@
             return;
           }
 
-          // Ingest any newly arrived events in exact chronological sequence
           data.events.forEach(evt => {
             if (evt && evt.event_id && !seenEventIds.has(evt.event_id)) {
               ingestIncomingMessage(evt);

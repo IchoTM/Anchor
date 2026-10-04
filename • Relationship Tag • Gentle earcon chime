@@ -1,0 +1,25 @@
+
+1. **Cognitive Security Scan (Google Gemini):**  
+   Analyzes every inbound text for extortion, urgent money demands, gift card requests, or impersonation.
+   - **Predatory Scam:** Dropped silently (*Silent Blackhole*). Bedside screen does not light up. Immediate SMS alert dispatched to designated caregivers.
+   - **Compromised Family Request:** If a known contact asks for sensitive banking info, a polite *Caregiver Review* hold receipt is returned to the sender.
+   - **Safe Message:** Rewritten in gentle, grounding language explicitly identifying the sender and their relationship to Eleanor.
+
+2. **Emotion-Gated Voice Narration (Presage SDK + ElevenLabs):**  
+   - If Eleanor's vitals are calm, Anchor presents the message quietly on her bedside display.
+   - If Presage detects elevated anxiety or distress (heart rate/respiration spike), Anchor generates a soothing, warm spoken narration using ElevenLabs.
+
+3. **Clinical Bedside Orientation Station:**  
+   - High-contrast, glare-resistant display using **Atkinson Hyperlegible** typography.
+   - Time-of-day orientation anchor (e.g., *"Peaceful Morning"*, *"Safe at home in Room 3B"*).
+   - Facial detection framing ensuring family portraits are centered and legible for aging eyes.
+
+---
+
+## 🚀 Quickstart
+
+### 1. Prerequisites
+- Python 3.10+
+- (Optional) `ngrok` for public mobile testing
+
+### 2. Installation

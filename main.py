@@ -24,7 +24,7 @@ load_dotenv(find_dotenv(), override=True)
 app = FastAPI(
     title="Anchor",
     description="Real-time iMessage dementia care assistant powered by Photon, Gemini, Presage, and ElevenLabs",
-    version="0.1.0",
+    version="1.0.0",
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -173,21 +173,18 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
     if is_blocked_or_malicious:
         is_verified = bool(result.get("is_verified_contact", False))
 
-        # Log full telemetry to in-memory caregiver alerts queue for the web dashboard
+        # Log to in-memory caregiver alerts queue for the monitoring dashboard
         caregiver_alert_item = dict(result)
         _caregiver_alerts.append(caregiver_alert_item)
 
-        # Protect Eleanor's Bedside Station from any disturbance
+        # Protect Eleanor's Bedside Station from disturbance
         result["grounded_message"] = ""
         result["audio_generated"] = False
         result["audio_id"] = None
         result["audio_url"] = None
         result["chime_url"] = None
-
-        # Strip internal AI reasoning from the in-band sender response
         result["malicious_reason"] = None
 
-        # Enforce zero response for unverified senders
         if not is_verified:
             result["caregiver_reply"] = None
     else:
