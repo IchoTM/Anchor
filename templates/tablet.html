@@ -44,6 +44,18 @@
       justify-content: space-between;
       padding: 24px 32px;
       overflow: hidden;
+      position: relative;
+    }
+
+    /* Invisible hover sensor zone at top for touchscreen / cursor detection in fullscreen */
+    .top-hover-trigger {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      z-index: 99;
+      pointer-events: none;
     }
 
     /* Clinical Device App Bar */
@@ -53,6 +65,37 @@
       align-items: center;
       padding-bottom: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.35s ease,
+                  background-color 0.3s ease;
+      z-index: 100;
+    }
+
+    /* Fullscreen Auto-Hide Mode styling */
+    body.is-fullscreen .top-hover-trigger {
+      pointer-events: auto;
+    }
+
+    body.is-fullscreen .device-appbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 18px 36px;
+      background: rgba(11, 17, 24, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transform: translateY(-105%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.is-fullscreen .device-appbar.revealed {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .device-identity {
@@ -522,8 +565,11 @@
 </head>
 <body>
 
+  <!-- Top proximity sensor zone for hovering in fullscreen mode -->
+  <div class="top-hover-trigger" id="topHoverTrigger"></div>
+
   <!-- Clinical Device App Bar -->
-  <header class="device-appbar">
+  <header class="device-appbar" id="deviceAppbar">
     <div class="device-identity">
       <div class="device-badge">
         <div class="status-indicator"></div>
@@ -651,6 +697,7 @@
     let audioCtx = null;
     let activeQrTab = 'judge';
     let messageAutoDismissTimer = null;
+    let appbarHideTimeout = null;
 
     const serverPublicUrl = "{{ public_url }}";
 
@@ -684,7 +731,55 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Fullscreen support
+    // Fullscreen Auto-Hide Controller
+    const appbar = document.getElementById('deviceAppbar');
+    const topTrigger = document.getElementById('topHoverTrigger');
+
+    function isFullscreenActive() {
+      return !!document.fullscreenElement;
+    }
+
+    function showAppbar() {
+      if (!appbar) return;
+      appbar.classList.add('revealed');
+      clearTimeout(appbarHideTimeout);
+    }
+
+    function scheduleAppbarHide(delay = 2500) {
+      clearTimeout(appbarHideTimeout);
+      if (!isFullscreenActive()) return;
+      appbarHideTimeout = setTimeout(() => {
+        if (isFullscreenActive() && appbar) {
+          appbar.classList.remove('revealed');
+        }
+      }, delay);
+    }
+
+    function handleFullscreenChange() {
+      const isFs = isFullscreenActive();
+      document.body.classList.toggle('is-fullscreen', isFs);
+
+      const fsIcon = document.getElementById('fsIcon');
+      const fsLabel = document.getElementById('fsLabel');
+      const fsBtn = document.getElementById('fullscreenToggleBtn');
+      if (fsIcon && fsLabel && fsBtn) {
+        fsIcon.textContent = isFs ? '✕' : '⛶';
+        fsLabel.textContent = isFs ? 'Exit Full Screen' : 'Full Screen';
+        fsBtn.classList.toggle('active', isFs);
+      }
+
+      if (isFs) {
+        // Show initially on entering fullscreen, then slide away
+        showAppbar();
+        scheduleAppbarHide(2500);
+      } else {
+        clearTimeout(appbarHideTimeout);
+        if (appbar) appbar.classList.remove('revealed');
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
     function toggleFullScreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
@@ -697,17 +792,40 @@
       }
     }
 
-    document.addEventListener('fullscreenchange', () => {
-      const isFs = !!document.fullscreenElement;
-      const fsIcon = document.getElementById('fsIcon');
-      const fsLabel = document.getElementById('fsLabel');
-      const fsBtn = document.getElementById('fullscreenToggleBtn');
-      if (fsIcon && fsLabel && fsBtn) {
-        fsIcon.textContent = isFs ? '✕' : '⛶';
-        fsLabel.textContent = isFs ? 'Exit Full Screen' : 'Full Screen';
-        fsBtn.classList.toggle('active', isFs);
+    // Reveal navbar when cursor moves within the top 65px or touches top of screen
+    window.addEventListener('mousemove', (e) => {
+      if (!isFullscreenActive()) return;
+      if (e.clientY <= 65) {
+        showAppbar();
+        scheduleAppbarHide(3000);
+      } else if (e.clientY > 110 && !appbar.matches(':hover')) {
+        // Leaving the top area hides it immediately after a brief grace interval
+        scheduleAppbarHide(800);
       }
-    });
+    }, { passive: true });
+
+    // Touch event support for tablet screens
+    window.addEventListener('touchstart', (e) => {
+      if (!isFullscreenActive()) return;
+      if (e.touches && e.touches[0] && e.touches[0].clientY <= 70) {
+        showAppbar();
+        scheduleAppbarHide(3500);
+      }
+    }, { passive: true });
+
+    if (appbar) {
+      appbar.addEventListener('mouseenter', () => {
+        if (isFullscreenActive()) {
+          showAppbar();
+          clearTimeout(appbarHideTimeout);
+        }
+      });
+      appbar.addEventListener('mouseleave', () => {
+        if (isFullscreenActive()) {
+          scheduleAppbarHide(1200);
+        }
+      });
+    }
 
     // Sound initialization
     function markSoundActive() {
