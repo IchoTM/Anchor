@@ -1,113 +1,71 @@
-# ⚓ Anchor: Real-Time Cognitive Security & Grounding for Dementia Care
+# Anchor: Real-Time Cognitive Security & Contextual Grounding for Dementia Care
 
-> **Bridging the context gap for elderly individuals experiencing dementia while protecting them from predatory financial fraud.**
-
----
-
-## 💡 The Problem
-
-1. **The Context Gap:**  
-   Elderly individuals with dementia frequently experience anxiety and disorientation when receiving text messages. A brief message like *"I'll be there in 10 mins"* can trigger panic because they may not remember who sent it, why they are coming, or what time of day it is.
-
-2. **The Fraud & Vulnerability Epidemic:**  
-   Seniors lose over **$3 billion annually** to emergency grandparent scams, predatory wire fraud, and high-pressure impersonation tactics. Traditional blocking solutions also accidentally cut off genuine family members texting from new numbers.
+> **An intelligent messaging interceptor and clinical display system designed to mitigate cognitive disorientation and prevent financial fraud in elderly patients.**
 
 ---
 
-## 🛡️ How Anchor Works
+## System Overview & Problem Statement
 
-Anchor intercepts incoming messages (iMessage, SMS, or Spectrum/Photon webhooks) and routes them through a clinical care pipeline:
+1. **The Context Gap in Digital Communication:**  
+   Patients experiencing dementia or cognitive decline frequently face anxiety when receiving standard text messages. A brief message such as *"I'll be there in 10 mins"* lacks necessary context, often causing distress as the patient may not recall the sender's identity, the scheduled event, or the current time of day.
+
+2. **Targeted Financial Vulnerability:**  
+   Elderly individuals are disproportionately targeted by financial fraud, losing billions annually to impersonation tactics, predatory wire fraud, and emergency scams. Standard blocking solutions are often insufficient and risk isolating the patient by accidentally filtering out legitimate communications from family members using new numbers.
+
+---
+
+## System Architecture
+
+Anchor operates as a middleware layer, intercepting incoming messages (via iMessage, SMS, or webhooks) and routing them through a predefined clinical evaluation pipeline:
 
     [Inbound Message]
            │
            ▼
-    [Gemini Security Scan & Contextual Grounding]
+    [NLP Security & Context Analysis (Google Gemini)]
            │
            ├─────────────────────────────────┬────────────────────────────────┐
-           │ (Flagged: Predatory / Scam)      │ (Safe: Genuine Family / Friend)│
+           │ (Flagged: Predatory / Scam)      │ (Safe: Verified Contact)       │
            ▼                                 ▼                                │
-    [Silent Bedside Shield]           [Presage Biometric Sensor Scan]          │
-    • Screen stays quiet               • Heart Rate & Respiration             │
-    • Zero acoustic startle           • Anxiety Threshold Evaluated            │
-    • Out-of-band Caregiver Alert              │                              │
+    [Out-of-Band Caregiver Alert]     [Biometric State Evaluation (Presage)]   │
+    • Message dropped silently         • Evaluates heart rate & respiration   │
+    • Device screen remains off        • Determines current anxiety baseline  │
+                                               │                              │
                                                ├──────────────┬───────────────┤
-                                               │ (Calm State) │(Spike / Panic)│
+                                               │ (Baseline)   │ (Elevated)    │
                                                ▼              ▼               ▼
-                                       [Visual Grounding] [ElevenLabs Voice Synthesis]
-                                       • Portrait Framing • Soothing spoken bedside narration
-                                       • Relationship Tag • Gentle earcon chime
+                                       [Visual Grounding] [Audio Intervention]
+                                       • Portrait Framing • Voice synthesis (ElevenLabs)
+                                       • Sender ID Tag    • Auditory orientation cues
 
-1. **Cognitive Security Scan (Google Gemini):**  
-   Analyzes every inbound text for extortion, urgent money demands, gift card requests, or impersonation.
-   - **Predatory Scam:** Dropped silently (*Silent Blackhole*). Bedside screen does not light up. Immediate SMS alert dispatched to designated caregivers.
-   - **Compromised Family Request:** If a known contact asks for sensitive banking info, a polite *Caregiver Review* hold receipt is returned to the sender.
-   - **Safe Message:** Rewritten in gentle, grounding language explicitly identifying the sender and their relationship to Eleanor.
+### Core Components
 
-2. **Emotion-Gated Voice Narration (Presage SDK + ElevenLabs):**  
-   - If Eleanor's vitals are calm, Anchor presents the message quietly on her bedside display.
-   - If Presage detects elevated anxiety or distress (heart rate/respiration spike), Anchor generates a soothing, warm spoken narration using ElevenLabs.
+1. **Contextual NLP Engine (Google Gemini):**  
+   Analyzes all inbound traffic for signs of extortion, financial demands, or impersonation.
+   * **Threat Interception:** Malicious messages are silently dropped. The patient's display remains inactive to prevent startle responses, and an alert is automatically dispatched to the designated caregiver.
+   * **Compromised Contact Protocol:** If a verified contact requests sensitive information (e.g., banking details, SSN), the system initiates a *Caregiver Review* hold and sends an automated verification prompt to the sender.
+   * **Contextual Rewriting:** Safe messages are reformatted into gentle, grounding language that explicitly identifies the sender and their relationship to the patient.
 
-3. **Clinical Bedside Orientation Station:**  
-   - High-contrast, glare-resistant display using **Atkinson Hyperlegible** typography.
-   - Time-of-day orientation anchor (e.g., *"Peaceful Morning"*, *"Safe at home in Room 3B"*).
-   - Facial detection framing ensuring family portraits are centered and legible for aging eyes.
+2. **Biometric Integration (Presage SDK & ElevenLabs):**  
+   * **Baseline State:** If the patient's vitals are stable, the system displays the grounded message silently.
+   * **Elevated State:** If the Presage sensor detects an elevated heart rate or respiration spike indicative of anxiety, Anchor generates a soothing, synthesized voice narration via ElevenLabs to gently introduce the message.
+
+3. **Patient-Facing Display Interface:**  
+   * High-contrast, glare-resistant UI utilizing **Atkinson Hyperlegible** typography.
+   * Persistent temporal and spatial orientation cues (e.g., *"Good Morning"*, *"You are safe at home"*).
+   * Facial detection framing to ensure contact portraits are properly centered and clearly visible.
 
 ---
 
-## 🚀 Quickstart
+## Getting Started
 
 ### 1. Prerequisites
-- Python 3.10+
-- (Optional) `ngrok` for public mobile testing
+* Python 3.10+
+* (Optional) `ngrok` for external mobile webhook testing
 
 ### 2. Installation
-    git clone https://github.com/your-org/anchor.git
-    cd anchor
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-
-### 3. Environment Configuration
-Copy `.env.example` to `.env` and fill in your API credentials:
-    cp .env.example .env
-
-Key variables:
-- `GEMINI_API_KEY`: Google Gemini API key
-- `ELEVENLABS_API_KEY`: ElevenLabs API key
-- `CAREGIVER_PHONE_NUMBER`: Phone number for out-of-band security alerts
-
-### 4. Running the Server
-    python main.py
-
-Anchor will start at `http://localhost:8000`.
-
----
-
-## 📱 Interactive Interfaces
-
-| Route | Interface | Description |
-|---|---|---|
-| `/` or `/tablet` | **Eleanor's Bedside Station** | Clinical ambient clock, orientation cues, and incoming grounded message stage. |
-| `/text` or `/mobile` | **Family iMessage Simulator** | Native iOS-styled interface for texting Eleanor and uploading contact photos. |
-| `/dev` or `/controller` | **Presenter Remote** | Biometric slider controls (Presage) and 1-click guided pitch sequence for judges. |
-| `/docs` | **FastAPI Swagger API** | Interactive documentation for all REST and webhook endpoints. |
-
----
-
-## 🧪 Guided 1-Click Pitch Scenarios
-
-From the Presenter Remote (`/dev`), you can trigger four core acts:
-
-1. **Act 1: The Context Gap (Calm • Text Only)**  
-   Alex texts *"Be there in 10!"* -> Eleanor's vitals are calm (72 BPM). Anchor grounds the relationship quietly on screen.
-2. **Act 2: Presage Biometric Voice Intervention (Panic • Voice On)**  
-   Sarah texts *"Did you take your pills?"* -> Vitals spike to 88%. Anchor plays an orienting earcon and narrates the message soothingly via ElevenLabs.
-3. **Act 3: The Silent Scam Shield (Predatory Blackhole)**  
-   Unknown number demands an urgent wire transfer -> Bedside tablet remains completely undisturbed; emergency alert is routed to caregivers.
-4. **Act 4: Compromised Contact Hold (Dual-Tier Protocol)**  
-   A verified family phone asks for Eleanor's SSN or routing number -> Held in Caregiver Review; sender receives polite verification instructions.
-
----
-
-## 📄 License
-MIT License. Built for compassionate elder care and cognitive security.
+```bash
+git clone [https://github.com/your-org/anchor.git](https://github.com/your-org/anchor.git)
+cd anchor
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
