@@ -6,24 +6,29 @@
   <title>Anchor • Patient Memory Station</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #05080e;
-      --card-bg: #0f1722;
-      --card-border: rgba(255, 255, 255, 0.22);
-      --card-elevated: #162232;
+      /* Anti-glare deep contrast slate foundation */
+      --bg: #090e17;
+      --card-bg: #0f172a;
+      --card-border: #475569;
+      --card-border-active: #94a3b8;
       --text-pure: #ffffff;
-      --text-high: #f8fafc;
+      --text-soft: #f8fafc;
       --text-sub: #cbd5e1;
-      --accent-bright: #38bdf8;
-      --clinical-teal: #2dd4bf;
+      --text-dim: #94a3b8;
+      
+      /* High-contrast cognitive aids (Warm Amber, Clear Emerald, Clinical Teal) */
+      --grounding-gold: #fde047;
+      --grounding-amber: #f59e0b;
+      --grounding-teal: #2dd4bf;
       --calm-green: #34d399;
-      --warm-amber: #fbbf24;
+      
       --radius-sm: 10px;
       --radius-md: 18px;
-      --radius-lg: 28px;
-      --radius-xl: 36px;
+      --radius-lg: 26px;
+      --radius-xl: 32px;
     }
 
     * {
@@ -35,9 +40,10 @@
     }
 
     body {
-      background: radial-gradient(circle at 50% 0%, #121c29 0%, #04070b 100%);
+      background: radial-gradient(circle at 50% 0%, #111a28 0%, #06090f 100%);
       color: var(--text-pure);
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      /* Atkinson Hyperlegible for supreme cognitive letter distinction */
+      font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -58,7 +64,7 @@
       pointer-events: none;
     }
 
-    /* Clinical Device App Bar */
+    /* Clinical Device App Bar (Retained intact for dev/caregiver controls) */
     .device-appbar {
       display: flex;
       justify-content: space-between;
@@ -82,7 +88,7 @@
       left: 0;
       right: 0;
       padding: 20px 40px;
-      background: rgba(5, 8, 14, 0.96);
+      background: rgba(9, 14, 23, 0.98);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-bottom: 2px solid rgba(255, 255, 255, 0.2);
@@ -111,7 +117,7 @@
       padding: 8px 18px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--card-border);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       font-size: 15px;
       font-weight: 700;
       color: #ffffff;
@@ -141,7 +147,7 @@
 
     .btn-device {
       background: rgba(255, 255, 255, 0.08);
-      border: 1.5px solid var(--card-border);
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
       color: #ffffff;
       border-radius: 999px;
       padding: 10px 20px;
@@ -185,7 +191,7 @@
       position: relative;
     }
 
-    /* Ambient View (Dementia Orientation Clock) */
+    /* Ambient Dementia Orientation Clock */
     .ambient-clock-view {
       display: flex;
       flex-direction: column;
@@ -197,100 +203,104 @@
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
+    /* Dementia Guideline: Use Sentence/Title case without all-caps shouting; high-contrast pill */
     .period-of-day-pill {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #ffffff;
-      background: #0f766e;
-      border: 2px solid #2dd4bf;
-      padding: 12px 34px;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #032b26;
+      background: #5eead4;
+      border: 3px solid #2dd4bf;
+      padding: 10px 36px;
       border-radius: 999px;
-      box-shadow: 0 4px 16px rgba(45, 212, 191, 0.28);
+      box-shadow: 0 4px 16px rgba(45, 212, 191, 0.25);
     }
 
     .time-clinical {
-      font-size: clamp(100px, 16vw, 150px);
-      font-weight: 800;
-      letter-spacing: -0.04em;
+      font-size: clamp(96px, 15vw, 144px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
       line-height: 1;
-      color: #ffffff;
+      color: var(--text-pure);
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     }
 
     .date-clinical {
       font-size: clamp(28px, 4vw, 42px);
       font-weight: 700;
-      color: #ffffff;
-      letter-spacing: -0.01em;
+      color: var(--text-soft);
+      letter-spacing: 0.01em;
+      line-height: 1.35;
     }
 
     .btn-recall-message {
       background: #1e293b;
-      border: 2px solid #38bdf8;
+      border: 2.5px solid #38bdf8;
       color: #ffffff;
       padding: 18px 36px;
       border-radius: 999px;
-      font-size: 21px;
+      font-size: 22px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       transition: all 0.2s ease;
-      margin-top: 20px;
+      margin-top: 18px;
       box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
     }
 
     .btn-recall-message svg {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       fill: none;
       stroke: currentColor;
-      stroke-width: 2.2;
+      stroke-width: 2.4;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
     .btn-recall-message:hover {
       background: #0284c7;
-      color: #ffffff;
-      transform: translateY(-1px);
+      border-color: #7dd3fc;
+      transform: translateY(-2px);
     }
 
-    /* Incoming Grounded Message Card */
+    /* Scientifically Designed Dementia Message Card */
+    /* - Solid background (no dizzying transparency/glassmorphism) */
+    /* - Maximum contrast border */
+    /* - Left-aligned text with constrained line length to stop visual crowding */
     .message-stage-card {
-      background: #0b121a;
-      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      background: #0d1522;
+      border: 3.5px solid #64748b;
       border-radius: var(--radius-xl);
-      padding: 44px 52px;
-      max-width: 980px;
+      padding: 44px 50px;
+      max-width: 940px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 32px;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9);
+      gap: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
       position: absolute;
       opacity: 0;
       pointer-events: none;
-      transform: translateY(20px) scale(0.98);
-      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(16px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
     }
 
     .message-stage-card.visible {
       opacity: 1;
       pointer-events: auto;
-      transform: translateY(0) scale(1);
+      transform: translateY(0);
     }
 
     .message-sender-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.14);
-      padding-bottom: 24px;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 22px;
     }
 
     .sender-profile {
@@ -302,50 +312,72 @@
     .sender-monogram {
       width: 72px;
       height: 72px;
-      border-radius: 20px;
+      border-radius: 18px;
       background: #0369a1;
-      border: 2px solid #38bdf8;
+      border: 2.5px solid #7dd3fc;
       display: grid;
       place-items: center;
       font-size: 28px;
-      font-weight: 800;
+      font-weight: 700;
       color: #ffffff;
-      letter-spacing: -0.01em;
       flex-shrink: 0;
     }
 
-    .sender-details h2 {
-      font-size: clamp(28px, 4vw, 38px);
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
+    .sender-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .sender-relationship-badge {
-      display: inline-block;
-      font-size: 19px;
+    .sender-details h2 {
+      font-size: clamp(28px, 3.8vw, 36px);
       font-weight: 700;
-      color: #38bdf8;
+      color: #ffffff;
       letter-spacing: 0.01em;
-      margin-top: 2px;
+      line-height: 1.2;
+    }
+
+    /* Scientifically optimized relationship cue: Warm Amber/Gold is easier for aging yellowed eyes than blue */
+    .sender-relationship-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 21px;
+      font-weight: 700;
+      color: #fde047;
+      letter-spacing: 0.02em;
     }
 
     .message-arrival-time {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 600;
       color: #cbd5e1;
       font-variant-numeric: tabular-nums;
     }
 
+    /* Grounded Body Text */
+    /* Dementia Guidelines:
+       - Left-aligned (anchors visual tracking)
+       - Atkinson Hyperlegible sans-serif
+       - Generous line-height (1.65) to eliminate crowding
+       - Line length restricted to max ~56 characters
+       - Avoid pure harsh all-white vibration with balanced soft ivory
+    */
     .grounded-body-text {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: clamp(32px, 4.4vw, 44px);
-      line-height: 1.45;
+      font-family: 'Atkinson Hyperlegible', sans-serif;
+      font-size: clamp(30px, 3.8vw, 40px);
+      line-height: 1.65;
+      color: #f8fafc;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      text-align: left;
+      max-width: 56ch;
+      padding: 8px 0;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .grounded-body-text strong {
+      font-weight: 700;
       color: #ffffff;
-      font-weight: 600;
-      padding: 10px 0;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
     }
 
     /* Action & Status Row */
@@ -354,8 +386,8 @@
       align-items: center;
       justify-content: space-between;
       padding-top: 24px;
-      border-top: 2px solid rgba(255, 255, 255, 0.14);
-      gap: 24px;
+      border-top: 2px solid #334155;
+      gap: 20px;
       flex-wrap: wrap;
     }
 
@@ -368,16 +400,16 @@
     .waveform-bars {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       height: 28px;
     }
 
     .wave-line {
-      width: 5px;
+      width: 6px;
       height: 100%;
-      background: var(--clinical-teal);
-      border-radius: 3px;
-      transform: scaleY(0.35);
+      background: #2dd4bf;
+      border-radius: 4px;
+      transform: scaleY(0.4);
       transition: transform 0.2s ease;
     }
 
@@ -395,9 +427,10 @@
     }
 
     .voice-caption {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 600;
       color: #e2e8f0;
+      letter-spacing: 0.01em;
     }
 
     .card-actions {
@@ -406,51 +439,53 @@
       gap: 16px;
     }
 
+    /* Dementia-optimized touch buttons: high contrast, clear descriptive text, large targets */
     .btn-action-replay {
       background: #1e293b;
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      border: 2.5px solid #94a3b8;
       color: #ffffff;
       border-radius: 16px;
       padding: 16px 28px;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
     }
 
     .btn-action-replay svg {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       fill: none;
       stroke: currentColor;
-      stroke-width: 2.2;
+      stroke-width: 2.4;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
     .btn-action-replay:hover {
       background: #334155;
-      border-color: #ffffff;
+      border-color: #f1f5f9;
     }
 
     .btn-action-dismiss {
       background: #0284c7;
-      border: 2px solid #38bdf8;
+      border: 2.5px solid #38bdf8;
       color: #ffffff;
       border-radius: 16px;
       padding: 16px 36px;
-      font-size: 20px;
-      font-weight: 800;
+      font-size: 21px;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.45);
     }
 
     .btn-action-dismiss:hover {
       background: #0369a1;
+      border-color: #bae6fd;
       transform: translateY(-1px);
     }
 
@@ -459,7 +494,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
       color: #94a3b8;
       padding-top: 16px;
@@ -471,9 +506,9 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(2, 4, 8, 0.92);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: rgba(2, 4, 8, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       z-index: 1000;
       place-items: center;
       padding: 24px;
@@ -661,10 +696,10 @@
         <div class="card-actions">
           <button class="btn-action-replay" id="btnReplayAudio" style="display: none;" onclick="replayAudio()">
             <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            <span>Replay Voice</span>
+            <span>Listen Again</span>
           </button>
           <button class="btn-action-dismiss" onclick="dismissMessageCard()">
-            <span>Thank You / Done</span>
+            <span>I Understand • Done</span>
           </button>
         </div>
       </div>
@@ -960,7 +995,7 @@
       if (data.audio_generated && data.audio_url) {
         currentAudioUrl = data.audio_url;
         replayBtn.style.display = 'inline-flex';
-        voiceCaption.textContent = 'Speaking gentle grounding message...';
+        voiceCaption.textContent = 'Speaking gentle message...';
         voiceGroup.classList.add('speaking');
 
         if (autoPlaySound) {
@@ -976,15 +1011,15 @@
             playPromise.then(() => {
               markSoundActive();
             }).catch(() => {
-              voiceCaption.textContent = 'Tap Replay Voice to listen';
+              voiceCaption.textContent = 'Tap Listen Again to hear message';
               voiceGroup.classList.remove('speaking');
             });
           }
 
           audioEl.onended = () => {
             voiceGroup.classList.remove('speaking');
-            voiceCaption.textContent = 'Spoken intervention completed';
-            scheduleAutoDismiss(25);
+            voiceCaption.textContent = 'Spoken message finished';
+            scheduleAutoDismiss(30);
           };
         } else {
           voiceGroup.classList.remove('speaking');
@@ -995,7 +1030,7 @@
         currentAudioUrl = null;
         replayBtn.style.display = 'none';
         voiceGroup.classList.remove('speaking');
-        voiceCaption.textContent = 'Visual message delivered calmly';
+        voiceCaption.textContent = 'Message displayed clearly';
         scheduleAutoDismiss(35);
       }
     }
@@ -1013,15 +1048,15 @@
         audioEl.currentTime = 0;
         audioEl.play().then(() => {
           voiceGroup.classList.add('speaking');
-          voiceCaption.textContent = 'Replaying voice...';
+          voiceCaption.textContent = 'Playing voice message...';
         }).catch(err => {
           console.warn("Replay blocked:", err);
         });
 
         audioEl.onended = () => {
           voiceGroup.classList.remove('speaking');
-          voiceCaption.textContent = 'Spoken intervention completed';
-          scheduleAutoDismiss(25);
+          voiceCaption.textContent = 'Spoken message finished';
+          scheduleAutoDismiss(30);
         };
       }
     }
