@@ -154,6 +154,16 @@
       transition: all 0.2s ease;
     }
 
+    .btn-device svg {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .btn-device:hover {
       background: rgba(255, 255, 255, 0.16);
       border-color: #ffffff;
@@ -171,97 +181,77 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px 0;
+      padding: 24px 0;
       position: relative;
     }
 
-    /* Ambient View (Default Peaceful Dementia Clock) */
+    /* Ambient View (Dementia Orientation Clock) */
     .ambient-clock-view {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 24px;
+      gap: 28px;
       max-width: 960px;
       width: 100%;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
     .period-of-day-pill {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #ffffff;
       background: #0f766e;
       border: 2px solid #2dd4bf;
-      padding: 10px 28px;
+      padding: 12px 34px;
       border-radius: 999px;
-      box-shadow: 0 4px 14px rgba(45, 212, 191, 0.25);
+      box-shadow: 0 4px 16px rgba(45, 212, 191, 0.28);
     }
 
     .time-clinical {
-      font-size: clamp(96px, 15vw, 140px);
+      font-size: clamp(100px, 16vw, 150px);
       font-weight: 800;
       letter-spacing: -0.04em;
       line-height: 1;
       color: #ffffff;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
     }
 
     .date-clinical {
-      font-size: clamp(26px, 3.8vw, 38px);
+      font-size: clamp(28px, 4vw, 42px);
       font-weight: 700;
       color: #ffffff;
       letter-spacing: -0.01em;
-    }
-
-    .orientation-assurance-card {
-      background: #0c141e;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: var(--radius-lg);
-      padding: 26px 40px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-top: 10px;
-      max-width: 760px;
-      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
-    }
-
-    .orientation-assurance-card .icon {
-      font-size: 38px;
-      flex-shrink: 0;
-    }
-
-    .orientation-assurance-card p {
-      font-size: clamp(19px, 2.5vw, 24px);
-      color: #e2e8f0;
-      line-height: 1.5;
-      text-align: left;
-    }
-
-    .orientation-assurance-card strong {
-      color: #ffffff;
-      font-weight: 800;
     }
 
     .btn-recall-message {
       background: #1e293b;
       border: 2px solid #38bdf8;
       color: #ffffff;
-      padding: 16px 32px;
+      padding: 18px 36px;
       border-radius: 999px;
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 12px;
       transition: all 0.2s ease;
-      margin-top: 8px;
+      margin-top: 20px;
       box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+    }
+
+    .btn-recall-message svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .btn-recall-message:hover {
@@ -431,6 +421,16 @@
       transition: all 0.2s;
     }
 
+    .btn-action-replay svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .btn-action-replay:hover {
       background: #334155;
       border-color: #ffffff;
@@ -505,12 +505,12 @@
 
     .tab-btn {
       flex: 1;
-      padding: 10px 14px;
+      padding: 11px 14px;
       border-radius: 10px;
       border: none;
       background: transparent;
       color: #cbd5e1;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
@@ -595,17 +595,21 @@
 
     <div class="device-actions">
       <button class="btn-device" id="soundToggleBtn" onclick="unlockAudio(true)" title="Ensure audio output is enabled">
-        <span id="soundIcon">🔇</span>
+        <span id="soundIconWrapper">
+          <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+        </span>
         <span id="soundLabel">Enable Audio</span>
       </button>
 
       <button class="btn-device" id="fullscreenToggleBtn" onclick="toggleFullScreen()" title="Enter dedicated kiosk mode">
-        <span id="fsIcon">⛶</span>
+        <span id="fsIconWrapper">
+          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </span>
         <span id="fsLabel">Full Screen</span>
       </button>
 
-      <button class="btn-device" onclick="openQrModal()" title="Caregiver and phone connectivity settings">
-        <span>⚙️</span>
+      <button class="btn-device" onclick="openQrModal()" title="Caregiver pairing options">
+        <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
         <span>Pair Phone</span>
       </button>
     </div>
@@ -614,22 +618,15 @@
   <!-- Viewport Container -->
   <main class="viewport-container">
 
-    <!-- Ambient Dementia Clock (Peaceful Default Orientation State) -->
+    <!-- Ambient Dementia Clock (Clean Orientation State) -->
     <div class="ambient-clock-view" id="ambientClockView">
       <div class="period-of-day-pill" id="periodOfDayLabel">Morning</div>
       <div class="time-clinical" id="clockTime">--:--</div>
       <div class="date-clinical" id="clockDate">Loading date...</div>
 
-      <div class="orientation-assurance-card">
-        <span class="icon">🌿</span>
-        <p>
-          <strong>You are resting comfortably in your room.</strong><br>
-          Everything is well. Staff and family are in touch and nearby.
-        </p>
-      </div>
-
       <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="showCurrentMessageCard()">
-        <span>💬 View Recent Message from <strong id="recallSenderName" style="color:#ffffff; margin-left:4px;">Family</strong></span>
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>View Recent Message from <strong id="recallSenderName" style="color:#ffffff; margin-left:4px;">Family</strong></span>
       </button>
     </div>
 
@@ -663,7 +660,8 @@
 
         <div class="card-actions">
           <button class="btn-action-replay" id="btnReplayAudio" style="display: none;" onclick="replayAudio()">
-            <span>🔊 Replay Voice</span>
+            <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            <span>Replay Voice</span>
           </button>
           <button class="btn-action-dismiss" onclick="dismissMessageCard()">
             <span>Thank You / Done</span>
@@ -681,12 +679,12 @@
     <span id="footerConnectionStatus">Connected to Care Network</span>
   </footer>
 
-  <!-- Caregiver & Presenter Pairing Modal -->
+  <!-- Caregiver Pairing Modal -->
   <div class="device-modal" id="qrModal" onclick="if(event.target===this) closeQrModal()">
     <div class="device-modal-card">
       <div class="modal-tabs">
-        <button class="tab-btn active" id="tabJudgeBtn" onclick="switchQrTab('judge')">📱 Send Text</button>
-        <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">🛠️ Remote Controller</button>
+        <button class="tab-btn active" id="tabJudgeBtn" onclick="switchQrTab('judge')">Caregiver Text</button>
+        <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">Simulation Console</button>
       </div>
 
       <p id="qrDesc" style="font-size: 15px; color: #cbd5e1; line-height: 1.45;">
@@ -774,11 +772,13 @@
       const isFs = isFullscreenActive();
       document.body.classList.toggle('is-fullscreen', isFs);
 
-      const fsIcon = document.getElementById('fsIcon');
+      const fsIconWrapper = document.getElementById('fsIconWrapper');
       const fsLabel = document.getElementById('fsLabel');
       const fsBtn = document.getElementById('fullscreenToggleBtn');
-      if (fsIcon && fsLabel && fsBtn) {
-        fsIcon.textContent = isFs ? '✕' : '⛶';
+      if (fsIconWrapper && fsLabel && fsBtn) {
+        fsIconWrapper.innerHTML = isFs
+          ? `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+          : `<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`;
         fsLabel.textContent = isFs ? 'Exit Full Screen' : 'Full Screen';
         fsBtn.classList.toggle('active', isFs);
       }
@@ -843,11 +843,11 @@
     function markSoundActive() {
       audioUnlocked = true;
       const soundBtn = document.getElementById('soundToggleBtn');
-      const soundIcon = document.getElementById('soundIcon');
+      const soundIconWrapper = document.getElementById('soundIconWrapper');
       const soundLabel = document.getElementById('soundLabel');
-      if (soundBtn && soundIcon && soundLabel) {
+      if (soundBtn && soundIconWrapper && soundLabel) {
         soundBtn.classList.add('active');
-        soundIcon.textContent = '🔊';
+        soundIconWrapper.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
         soundLabel.textContent = 'Audio Active';
       }
     }
@@ -1069,7 +1069,7 @@
 
       if (desc) {
         desc.textContent = (activeQrTab === 'dev')
-          ? "Scan on the caregiver/presenter phone to test biometrics, send messages, and simulate scenarios."
+          ? "Scan on the caregiver or presenter device to test biometrics, send messages, and simulate scenarios."
           : "Scan with any smartphone camera to open the family iMessage interface and text Eleanor.";
       }
 
