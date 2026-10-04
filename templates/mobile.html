@@ -175,6 +175,7 @@
       font-size: 15.5px;
       line-height: 1.32;
       word-wrap: break-word;
+      white-space: pre-wrap;
       letter-spacing: -0.01em;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
@@ -204,13 +205,8 @@
       font-size: 15px;
       line-height: 1.34;
       word-wrap: break-word;
+      white-space: pre-wrap;
       letter-spacing: -0.01em;
-    }
-
-    /* Subtle tag for alerts */
-    .imessage-bubble-gray.alert-bubble {
-      border-color: rgba(255, 69, 58, 0.35);
-      background: #2a1f21;
     }
 
     /* Keyboard Accessory Scenario Chips */
@@ -684,23 +680,26 @@
       input.focus();
     }
 
-    // Normal incoming message bubble for security alerts
+    // Standard plain-text incoming message bubble for security alerts
     function renderMaliciousWarningBubble(data) {
       const chatStream = document.getElementById('chatStream');
       const senderInfo = data.sender_handle || data.sender_name || "Unknown Sender";
       const reason = data.malicious_reason || "Emergency extortion / Grandparent scam pattern";
 
+      const alertText = 
+        `[Anchor Shield Alert] Blocked suspicious text to Eleanor from ${senderInfo}:\n\n` +
+        `"${data.raw_message}"\n\n` +
+        `Reason: ${reason}\n` +
+        `Status: Blocked from Eleanor's bedside screen.`;
+
       const alertRow = document.createElement('div');
       alertRow.className = 'bubble-row-incoming';
-      alertRow.innerHTML = `
-        <div class="imessage-bubble-gray alert-bubble">
-          <strong>⚠️ [Anchor Security Alert]</strong><br>
-          Blocked suspicious text to Eleanor from <em>${escapeHtml(senderInfo)}</em>:<br>
-          "${escapeHtml(data.raw_message)}"<br><br>
-          <span style="color:#ff8e8e;font-size:13px;">Reason: ${escapeHtml(reason)}</span><br>
-          <span style="color:#8e8e93;font-size:12px;">✓ Shielded from Eleanor's screen</span>
-        </div>
-      `;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'imessage-bubble-gray';
+      bubble.textContent = alertText;
+
+      alertRow.appendChild(bubble);
       chatStream.appendChild(alertRow);
       chatStream.scrollTop = chatStream.scrollHeight;
     }
@@ -783,7 +782,7 @@
           return;
         }
 
-        // 2. Incoming Gray iMessage confirmation bubble from Anchor
+        // 2. Incoming standard gray iMessage confirmation from Anchor (plain text)
         const incomingRow = document.createElement('div');
         incomingRow.className = 'bubble-row-incoming';
 
@@ -791,14 +790,17 @@
           ? `Spoken aloud to calm agitation (${bpm} BPM)` 
           : `Displayed on screen (Vitals stable, ${bpm} BPM)`;
 
-        incomingRow.innerHTML = `
-          <div class="imessage-bubble-gray">
-            Hi ${escapeHtml(currentSender)}, Eleanor received your message.<br><br>
-            <em>Anchor grounded it as:</em><br>
-            "${escapeHtml(data.grounded_message)}"<br><br>
-            <span style="color:#8e8e93;font-size:12px;">${modeNote}</span>
-          </div>
-        `;
+        const replyText = 
+          `Hi ${currentSender}, Eleanor received your message.\n\n` +
+          `Anchor grounded it as:\n` +
+          `"${data.grounded_message}"\n\n` +
+          `${modeNote}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'imessage-bubble-gray';
+        bubble.textContent = replyText;
+
+        incomingRow.appendChild(bubble);
         chatStream.appendChild(incomingRow);
         chatStream.scrollTop = chatStream.scrollHeight;
 
