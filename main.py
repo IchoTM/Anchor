@@ -239,21 +239,33 @@ async def serve_mobile_caregiver():
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Messages • Grandma Eleanor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body {
+    
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
       background: #000000;
+    }
+
+    body {
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
-      height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100dvh;
     }
 
     /* iOS iMessage Header */
@@ -262,24 +274,23 @@ async def serve_mobile_caregiver():
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.15);
-      padding: 12px 16px;
+      padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      position: sticky;
-      top: 0;
+      flex-shrink: 0;
       z-index: 100;
     }
 
     .contact-avatar {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, #a855f7, #6366f1);
       display: grid;
       place-items: center;
-      font-size: 24px;
-      margin-bottom: 4px;
+      font-size: 22px;
+      margin-bottom: 3px;
       box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
     }
 
@@ -306,6 +317,8 @@ async def serve_mobile_caregiver():
       gap: 8px;
       overflow-x: auto;
       white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
     }
 
     .identity-label {
@@ -333,12 +346,14 @@ async def serve_mobile_caregiver():
 
     /* Message History Stream */
     .chat-scroll {
-      flex: 1;
+      flex: 1 1 0%;
+      min-height: 0;
       padding: 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .bubble-row {
@@ -398,8 +413,11 @@ async def serve_mobile_caregiver():
       display: flex;
       gap: 8px;
       overflow-x: auto;
+      white-space: nowrap;
       background: #121214;
       border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
     }
 
     .preset-pill {
@@ -421,6 +439,7 @@ async def serve_mobile_caregiver():
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .input-box {
@@ -1133,65 +1152,45 @@ async def serve_demo_tablet():
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     }}
 
     .qr-img {{
-      width: 210px;
-      height: 210px;
+      width: 220px;
+      height: 220px;
       background: white;
       padding: 10px;
       border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     }}
 
-    .tunnel-config-box {{
+    .tunnel-display-box {{
       width: 100%;
       background: #0f1621;
       border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 12px;
-      text-align: left;
+      padding: 10px 14px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
+      text-align: center;
     }}
 
-    .tunnel-config-box label {{
+    .tunnel-display-label {{
       font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      color: var(--text-muted);
     }}
 
-    .tunnel-row {{
-      display: flex;
-      gap: 6px;
-    }}
-
-    .tunnel-input {{
-      flex: 1;
-      background: #182232;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 7px 10px;
+    .tunnel-display-url {{
       font-size: 13px;
-      color: #fff;
-      font-family: monospace;
-      outline: none;
-    }}
-
-    .btn-apply-tunnel {{
-      background: var(--accent);
-      color: #0c1117;
-      border: none;
-      border-radius: 8px;
-      padding: 0 12px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--accent);
+      word-break: break-all;
+      user-select: all;
     }}
 
     audio {{ display: none; }}
@@ -1391,12 +1390,9 @@ async def serve_demo_tablet():
 
       <img id="qrImage" class="qr-img" alt="QR Code to Text Grandma Eleanor">
 
-      <div class="tunnel-config-box">
-        <label>Mobile Sender URL (Auto-Detected)</label>
-        <div class="tunnel-row">
-          <input type="text" id="tunnelInput" class="tunnel-input" placeholder="https://your-tunnel.ngrok-free.dev">
-          <button class="btn-apply-tunnel" onclick="applyTunnelUrl()">Update</button>
-        </div>
+      <div class="tunnel-display-box">
+        <div class="tunnel-display-label">Active Mobile Link</div>
+        <div class="tunnel-display-url" id="qrUrlDisplay">Detecting link...</div>
       </div>
 
       <button class="btn-send" style="width: 100%;" onclick="closeQrModal()">Close</button>
@@ -1420,18 +1416,12 @@ async def serve_demo_tablet():
         }}
       }} catch (e) {{}}
 
-      // 2. Check localStorage cache
-      const cached = localStorage.getItem('anchor_tunnel_url');
-      if (cached && cached.trim().length > 0) {{
-        return cached.trim().replace(/\\/+$/, '');
-      }}
-
-      // 3. Check server-injected environment variable
+      // 2. Check server-injected environment variable
       if (serverPublicUrl && serverPublicUrl.length > 0) {{
         return serverPublicUrl;
       }}
 
-      // 4. If loaded on a remote domain/host, use current window origin
+      // 3. If loaded on a remote domain/host, use current window origin
       if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {{
         return window.location.origin;
       }}
@@ -1441,7 +1431,10 @@ async def serve_demo_tablet():
 
     function renderQr(baseUrl) {{
       const fullUrl = baseUrl + '/text';
-      document.getElementById('tunnelInput').value = fullUrl;
+      const urlDisplay = document.getElementById('qrUrlDisplay');
+      if (urlDisplay) {{
+        urlDisplay.textContent = fullUrl;
+      }}
       const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=' + encodeURIComponent(fullUrl);
       document.getElementById('qrImage').src = qrApiUrl;
     }}
@@ -1454,17 +1447,6 @@ async def serve_demo_tablet():
 
     function closeQrModal() {{
       document.getElementById('qrModal').style.display = 'none';
-    }}
-
-    function applyTunnelUrl() {{
-      let inputVal = document.getElementById('tunnelInput').value.trim();
-      if (!inputVal) return;
-      if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {{
-        inputVal = 'https://' + inputVal;
-      }}
-      inputVal = inputVal.replace(/\\/text\\/?$/, '').replace(/\\/+$/, '');
-      localStorage.setItem('anchor_tunnel_url', inputVal);
-      renderQr(inputVal);
     }}
 
     // Browser audio policy unlock
