@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Anchor • Remote Controller</title>
+  <title>Anchor • Presenter Remote & Pitch Controller</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -18,6 +18,7 @@
       --accent-glow: rgba(56, 189, 248, 0.3);
       --calm: #10b981;
       --panic: #f43f5e;
+      --amber: #f59e0b;
       --text: #f1f5f9;
       --text-muted: #94a3b8;
     }
@@ -27,10 +28,12 @@
       color: var(--text);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
-      padding: calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+      padding: calc(14px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       gap: 16px;
+      max-width: 640px;
+      margin: 0 auto;
     }
 
     header {
@@ -90,6 +93,117 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
+    }
+
+    /* Pitch Deck Presets */
+    .pitch-deck-container {
+      background: linear-gradient(145deg, #101c2e, #0c1524);
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 30px rgba(2, 132, 199, 0.15);
+    }
+
+    .pitch-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pitch-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(56, 189, 248, 0.2);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    .pitch-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .pitch-btn {
+      background: #0d1420;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      color: var(--text);
+    }
+
+    .pitch-btn:hover {
+      background: #152234;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .pitch-btn:active {
+      transform: scale(0.98);
+    }
+
+    .pitch-btn-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-weight: 800;
+      font-size: 13px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      color: #38bdf8;
+    }
+
+    .pitch-btn-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pitch-btn-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pitch-btn-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .pitch-narrative-box {
+      display: none;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #e2e8f0;
+    }
+
+    .pitch-narrative-box strong {
+      color: #38bdf8;
     }
 
     /* Biometrics Grid */
@@ -225,31 +339,43 @@
       cursor: pointer;
     }
 
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+    }
+
     .btn-send {
       background: linear-gradient(135deg, #0284c7, #0ea5e9);
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 12px;
-      font-weight: 600;
+      padding: 13px;
+      font-weight: 700;
       font-size: 14px;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+      transition: all 0.15s ease;
+    }
+
+    .btn-send:hover {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
     }
 
     .btn-send:disabled {
       opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .result-alert {
       display: none;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 12px;
-      line-height: 1.4;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
     }
 
     .result-alert.success {
@@ -263,16 +389,22 @@
       border: 1px solid rgba(244, 63, 94, 0.3);
       color: #fda4af;
     }
+
+    .result-alert.hold {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fde047;
+    }
   </style>
 </head>
 <body>
 
   <header>
     <div class="brand">
-      <div class="brand-icon">🛠️</div>
+      <div class="brand-icon">⚓</div>
       <div class="brand-title">
         <h1>Anchor Controller</h1>
-        <p>Presenter Remote Control</p>
+        <p>Presenter Remote & Simulation Console</p>
       </div>
     </div>
     <div style="font-size: 12px; color: var(--calm); font-weight: 600;">
@@ -280,10 +412,71 @@
     </div>
   </header>
 
-  <!-- Panel 1: Presage Biometrics Live Controller -->
+  <!-- Panel 1: 1-Click Pitch Mode Deck for Judges -->
+  <section class="pitch-deck-container">
+    <div class="pitch-header">
+      <span class="panel-title" style="color: #93c5fd;">⚡ 1-Click Demo Pitch Sequence</span>
+      <span class="pitch-tag">Pitch Mode</span>
+    </div>
+
+    <div class="pitch-grid">
+      <!-- Act 1 -->
+      <button class="pitch-btn" onclick="runPitchAct(1)">
+        <div class="pitch-btn-num">1</div>
+        <div class="pitch-btn-content">
+          <div class="pitch-btn-title">
+            <span>The Context Gap</span>
+            <span style="font-size: 11px; color: #34d399;">(Calm • Text Only)</span>
+          </div>
+          <div class="pitch-btn-desc">Alex: "Be there in 10!" → Eleanor is calm (20%). Bedside displays portrait + calm relationship context.</div>
+        </div>
+      </button>
+
+      <!-- Act 2 -->
+      <button class="pitch-btn" onclick="runPitchAct(2)">
+        <div class="pitch-btn-num" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);">2</div>
+        <div class="pitch-btn-content">
+          <div class="pitch-btn-title">
+            <span>Presage Biometric Spike</span>
+            <span style="font-size: 11px; color: #fb7185;">(Distress • Voice Trigger)</span>
+          </div>
+          <div class="pitch-btn-desc">Sarah: "Did you take pills?" → Heart rate spikes (88%). ElevenLabs soothing voice speaks aloud.</div>
+        </div>
+      </button>
+
+      <!-- Act 3 -->
+      <button class="pitch-btn" onclick="runPitchAct(3)">
+        <div class="pitch-btn-num" style="color: #fda4af; border-color: rgba(244, 63, 94, 0.4);">3</div>
+        <div class="pitch-btn-content">
+          <div class="pitch-btn-title">
+            <span>The Silent Scam Shield</span>
+            <span style="font-size: 11px; color: #f87171;">(Predatory Blackhole)</span>
+          </div>
+          <div class="pitch-btn-desc">Unknown number: "IRS Wire $2,500 now" → Silent drop, bedside untouched, logged to Caregiver Alerts.</div>
+        </div>
+      </button>
+
+      <!-- Act 4 -->
+      <button class="pitch-btn" onclick="runPitchAct(4)">
+        <div class="pitch-btn-num" style="color: #fde047; border-color: rgba(245, 158, 11, 0.4);">4</div>
+        <div class="pitch-btn-content">
+          <div class="pitch-btn-title">
+            <span>Compromised Family Hold</span>
+            <span style="font-size: 11px; color: #fde047;">(Dual-Tier Protocol)</span>
+          </div>
+          <div class="pitch-btn-desc">Sarah's phone asks for bank SSN → Bedside quiet. Sarah receives empathetic Caregiver Review notice.</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Live Presenter Cue Box -->
+    <div id="pitchNarrativeBox" class="pitch-narrative-box"></div>
+  </section>
+
+  <!-- Panel 2: Presage Biometrics Live Controller -->
   <div class="panel">
     <div class="panel-header">
-      <span class="panel-title">Eleanor's Biometrics</span>
+      <span class="panel-title">Eleanor's Biometrics (Presage SDK)</span>
       <span id="anxietyBadge" class="status-pill status-calm">CALM (TEXT ONLY)</span>
     </div>
 
@@ -318,10 +511,10 @@
     </div>
   </div>
 
-  <!-- Panel 2: Inbound Message Simulator -->
+  <!-- Panel 3: Inbound Message Simulator -->
   <div class="panel">
     <div class="panel-header">
-      <span class="panel-title">Simulate Inbound Text</span>
+      <span class="panel-title">Custom Message Sandbox</span>
       <span style="font-size: 16px;">📱</span>
     </div>
 
@@ -348,7 +541,7 @@
     </div>
 
     <div class="field-group">
-      <label>Demo Scenarios</label>
+      <label>Quick Presets</label>
       <div class="preset-chips">
         <span class="chip" onclick="setScenario('Alex', 'Grandson', 'I will be there in 10 mins!')">⏳ 10 Mins (Panic)</span>
         <span class="chip" onclick="setScenario('Sarah', 'Daughter', 'Did you take your pills? Call me.')">💊 Pill Check</span>
@@ -386,7 +579,7 @@
         rr.innerHTML = `15 <span style="font-size: 11px; color: var(--text-muted);">BrPM</span>`;
       }
 
-      fetch('/telemetry/presage', {
+      return fetch('/telemetry/presage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -400,7 +593,7 @@
 
     function setAnxiety(val) {
       document.getElementById('anxietySlider').value = val;
-      onAnxietySlider(val);
+      return onAnxietySlider(val);
     }
 
     function onContactChange() {
@@ -430,6 +623,54 @@
       }
     }
 
+    // 1-Click Guided Pitch Mode Runner
+    async function runPitchAct(actNumber) {
+      const narrativeBox = document.getElementById('pitchNarrativeBox');
+      narrativeBox.style.display = 'block';
+
+      if (actNumber === 1) {
+        // Act 1: Context & Grounding (Calm, text only)
+        setAnxiety(20);
+        setScenario('Alex', 'Grandson', 'I will be there in 10 mins!');
+        narrativeBox.innerHTML = `
+          <strong>Act 1: The Context Gap</strong><br>
+          • <em>Problem:</em> Eleanor would panic seeing "Be there in 10" from an unremembered number.<br>
+          • <em>Anchor:</em> Reassures her it's Alex (her grandson). Because her heart rate is calm (72 BPM), Anchor shows the visual portrait quietly without talking.
+        `;
+        await sendSimulatedMessage();
+      } else if (actNumber === 2) {
+        // Act 2: Presage Biometric Voice Intervention
+        setAnxiety(88);
+        setScenario('Sarah', 'Daughter', 'Did you take your pills? Call me.');
+        narrativeBox.innerHTML = `
+          <strong>Act 2: Presage Biometric Voice Spike</strong><br>
+          • <em>Problem:</em> Eleanor's vitals spiked (110 BPM, elevated distress). Reading text alone causes agitation.<br>
+          • <em>Anchor:</em> Presage triggers ElevenLabs synthesis. Tablet plays gentle chime, primes visually for 2.0s, then speaks aloud with calm pacing.
+        `;
+        await sendSimulatedMessage();
+      } else if (actNumber === 3) {
+        // Act 3: Stranger Scam Shield (Predatory Blackhole)
+        setAnxiety(25);
+        setScenario('custom', 'Unknown Sender', 'IRS URGENT: Arrest warrant issued. Wire $2,500 via Zelle immediately or officers will arrive at your home!');
+        narrativeBox.innerHTML = `
+          <strong>Act 3: The Silent Scam Shield</strong><br>
+          • <em>Problem:</em> Fraudsters target elderly dementia patients with fear-inducing urgent money demands.<br>
+          • <em>Anchor:</em> Silent blackhole. Eleanor's screen does NOT chime or light up. Alert is forwarded exclusively to family caregivers.
+        `;
+        await sendSimulatedMessage();
+      } else if (actNumber === 4) {
+        // Act 4: Compromised Contact / Sensitive Request Hold
+        setAnxiety(25);
+        setScenario('Sarah', 'Daughter', 'Mom please send me your bank routing number and SSN right now, I need to pay your utility bill.');
+        narrativeBox.innerHTML = `
+          <strong>Act 4: Dual-Tier Protocol (Compromised Device)</strong><br>
+          • <em>Problem:</em> A known contact asks for sensitive banking info (or daughter's phone is hacked).<br>
+          • <em>Anchor:</em> Bedside stays quiet. Sarah receives polite "Held in Caregiver Review" notice instructing her to phone Eleanor directly.
+        `;
+        await sendSimulatedMessage();
+      }
+    }
+
     async function sendSimulatedMessage() {
       const sendBtn = document.getElementById('sendBtn');
       const contactVal = document.getElementById('contactSelect').value;
@@ -454,7 +695,7 @@
       const anxietyDetected = anxietyScore >= 0.60;
 
       sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span>Processing...</span>';
+      sendBtn.innerHTML = '<span>Processing with Anchor...</span>';
 
       try {
         const response = await fetch('/webhook/imessage', {
@@ -473,8 +714,13 @@
         alertEl.style.display = 'block';
 
         if (data.is_malicious || data.blocked_from_patient) {
-          alertEl.className = 'result-alert scam';
-          alertEl.innerHTML = `<strong>🚨 SCAM BLOCKED:</strong> Suppressed from Eleanor's bedside station.<br>Caregivers alerted: "${data.malicious_reason || 'Predatory scam detected'}"`;
+          if (data.caregiver_reply) {
+            alertEl.className = 'result-alert hold';
+            alertEl.innerHTML = `<strong>🔒 SAFETY HOLD ACTIVE:</strong> Bedside screen remained quiet.<br><strong>Receipt sent to sender:</strong> "${data.caregiver_reply}"`;
+          } else {
+            alertEl.className = 'result-alert scam';
+            alertEl.innerHTML = `<strong>🚨 SILENT SCAM SHIELD:</strong> Predatory text blackholed.<br>Eleanor heard nothing. Alert dispatched to caregiver portal.`;
+          }
         } else {
           alertEl.className = 'result-alert success';
           const audioMsg = data.audio_generated ? '🎙️ Spoken Aloud to Eleanor' : '👁️ Screen Display Only';
