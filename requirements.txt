@@ -5,3 +5,6 @@ python-dotenv
 google-genai
 elevenlabs
 python-multipart
+pillow
+opencv-python-headless
+numpy
