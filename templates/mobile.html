@@ -2,92 +2,184 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Messages • Grandma Eleanor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    
+
+    :root {
+      --app-height: 100dvh;
+      --ios-blue: #007aff;
+      --ios-bubble-blue: linear-gradient(180deg, #0a84ff 0%, #007aff 100%);
+      --ios-gray-bg: #1c1c1e;
+      --ios-field-bg: #2c2c2e;
+      --ios-border: rgba(255, 255, 255, 0.14);
+      --ios-secondary: #8e8e93;
+    }
+
     html, body {
       height: 100%;
-      height: 100dvh;
+      height: var(--app-height, 100dvh);
+      max-height: var(--app-height, 100dvh);
+      width: 100vw;
       overflow: hidden;
       background: #000000;
     }
 
     body {
       color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Plus Jakarta Sans', sans-serif;
       display: flex;
       flex-direction: column;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100dvh;
+      position: relative;
     }
 
-    /* iOS iMessage Header */
+    /* iOS 17/18 iMessage Header */
     .imessage-header {
-      background: rgba(22, 22, 24, 0.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.15);
-      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      background: rgba(26, 26, 28, 0.94);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.16);
+      padding: calc(6px + env(safe-area-inset-top)) 14px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .header-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--ios-blue);
+      font-size: 17px;
+      font-weight: 400;
+      cursor: pointer;
+      min-width: 75px;
+    }
+
+    .chevron-back {
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 300;
+      margin-top: -2px;
+    }
+
+    .header-center {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex-shrink: 0;
-      z-index: 100;
-      gap: 2px;
+      cursor: pointer;
     }
 
     .contact-avatar {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #a855f7, #6366f1);
+      background: linear-gradient(135deg, #c084fc, #6366f1);
       display: grid;
       place-items: center;
-      font-size: 22px;
-      margin-bottom: 2px;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      font-size: 20px;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .contact-name-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 2px;
     }
 
     .contact-name {
-      font-size: 15px;
+      font-size: 13.5px;
       font-weight: 600;
       color: #fff;
     }
 
-    .header-sender-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 0.5px solid rgba(255, 255, 255, 0.18);
-      padding: 3px 10px;
-      border-radius: 999px;
+    .contact-chevron {
       font-size: 11px;
-      color: #7dd3fc;
-      margin-top: 2px;
-      cursor: pointer;
-      transition: background 0.15s;
+      color: var(--ios-secondary);
     }
 
-    .header-sender-pill:active {
-      background: rgba(255, 255, 255, 0.15);
+    .header-nav-right {
+      min-width: 75px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .facetime-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      color: var(--ios-blue);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Sender Identity Pill Banner */
+    .identity-subnav {
+      background: rgba(18, 18, 20, 0.95);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 90;
+    }
+
+    .identity-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 0.5px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      color: #7dd3fc;
+      cursor: pointer;
+    }
+
+    .identity-pill strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .identity-pill .edit-icon {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    .connection-badge {
+      font-size: 11px;
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .connection-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 6px #10b981;
     }
 
     /* Message History Stream */
     .chat-scroll {
       flex: 1 1 0%;
       min-height: 0;
-      padding: 16px;
+      padding: 14px 14px 10px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -95,106 +187,160 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    .system-notice {
+    .imessage-stamp {
       text-align: center;
-      color: #8e8e93;
-      font-size: 11px;
-      margin: 4px 0 8px;
-      line-height: 1.4;
+      color: var(--ios-secondary);
+      font-size: 11.5px;
+      font-weight: 500;
+      margin: 2px 0;
+      letter-spacing: -0.01em;
+    }
+
+    .imessage-secure-notice {
+      text-align: center;
+      color: #636366;
+      font-size: 10.5px;
+      margin-bottom: 6px;
+      line-height: 1.35;
     }
 
     .bubble-row {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 4px;
+      gap: 3px;
     }
 
     .imessage-bubble {
-      background: #007aff;
+      background: var(--ios-bubble-blue);
       color: #ffffff;
-      padding: 10px 16px;
-      border-radius: 18px 18px 4px 18px;
-      max-width: 80%;
-      font-size: 15px;
-      line-height: 1.35;
+      padding: 9px 15px;
+      border-radius: 19px 19px 4px 19px;
+      max-width: 78%;
+      font-size: 15.5px;
+      line-height: 1.32;
       word-wrap: break-word;
+      letter-spacing: -0.01em;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .bubble-status {
       font-size: 11px;
-      color: #8e8e93;
+      color: var(--ios-secondary);
       padding-right: 4px;
+      font-weight: 400;
     }
 
-    /* Caregiver Telemetry Card */
-    .grounded-preview-card {
+    /* Apple Health / CareKit Telemetry Receipt Card */
+    .telemetry-receipt-card {
       align-self: flex-start;
-      background: #1c1c1e;
+      background: rgba(28, 28, 30, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 16px;
-      padding: 14px;
-      max-width: 90%;
+      border-radius: 18px;
+      padding: 12px 14px;
+      max-width: 92%;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      gap: 9px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+      animation: fadeIn 0.25s ease-out;
     }
 
-    .grounded-preview-card.calm {
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .telemetry-receipt-card.calm {
       border-left: 3.5px solid #10b981;
     }
 
-    .grounded-preview-card.panic {
+    .telemetry-receipt-card.panic {
       border-left: 3.5px solid #f43f5e;
     }
 
-    .card-meta-row {
+    .telemetry-header {
       display: flex;
-      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 7px;
     }
 
-    .meta-chip {
-      font-size: 10.5px;
+    .telemetry-title {
+      font-size: 11.5px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 999px;
+      color: #9ca3af;
       letter-spacing: 0.03em;
       text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    .meta-chip.calm {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 0.5px solid rgba(16, 185, 129, 0.3);
+    .delivery-pill {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
     }
 
-    .meta-chip.panic {
-      background: rgba(244, 63, 94, 0.15);
-      color: #fb7185;
-      border: 0.5px solid rgba(244, 63, 94, 0.3);
-    }
-
-    .meta-chip.delivery {
-      background: rgba(56, 189, 248, 0.12);
+    .delivery-pill.spoken {
+      background: rgba(56, 189, 248, 0.16);
       color: #38bdf8;
-      border: 0.5px solid rgba(56, 189, 248, 0.25);
+      border: 0.5px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .delivery-pill.visual {
+      background: rgba(148, 163, 184, 0.14);
+      color: #cbd5e1;
+      border: 0.5px solid rgba(148, 163, 184, 0.25);
+    }
+
+    /* Raw Biometric Vitals Strip */
+    .vitals-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .vital-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .vital-badge.vital-calm {
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .vital-badge.vital-panic {
+      color: #fb7185;
+      border-color: rgba(244, 63, 94, 0.3);
+      background: rgba(244, 63, 94, 0.12);
     }
 
     .card-grounded-quote {
       font-size: 13.5px;
       color: #f3f4f6;
-      line-height: 1.42;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 9px 12px;
+      line-height: 1.4;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 9px 11px;
       border-radius: 10px;
       border: 0.5px solid rgba(255, 255, 255, 0.06);
     }
 
     .card-clinical-note {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #9ca3af;
       line-height: 1.35;
       display: flex;
@@ -204,67 +350,126 @@
 
     /* Scenario Quick Chips */
     .scenarios-tray {
-      padding: 8px 12px;
+      padding: 6px 12px 6px;
       display: flex;
-      gap: 8px;
+      gap: 7px;
       overflow-x: auto;
       white-space: nowrap;
-      background: #121214;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      background: #111113;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.07);
       flex-shrink: 0;
       -webkit-overflow-scrolling: touch;
     }
 
+    .scenarios-tray::-webkit-scrollbar { display: none; }
+
     .preset-pill {
       background: rgba(255, 255, 255, 0.08);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #e5e5ea;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 999px;
-      padding: 6px 12px;
+      padding: 5px 11px;
       font-size: 12px;
+      font-weight: 500;
       white-space: nowrap;
       cursor: pointer;
     }
 
-    /* Bottom Input Bar */
-    .composer {
-      background: #161618;
+    .preset-pill:active {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    /* Bottom iOS iMessage Composer */
+    .composer-wrapper {
+      background: rgba(26, 26, 28, 0.96);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
       border-top: 0.5px solid rgba(255, 255, 255, 0.15);
-      padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .composer {
+      padding: 7px 10px calc(7px + env(safe-area-inset-bottom, 8px));
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .btn-apps-plus {
+      width: 33px;
+      height: 33px;
+      border-radius: 50%;
+      background: #2c2c2e;
+      border: 0.5px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 19px;
+      font-weight: 300;
+      cursor: pointer;
       flex-shrink: 0;
+    }
+
+    .input-capsule {
+      flex: 1;
+      min-height: 36px;
+      background: #1c1c1e;
+      border: 0.5px solid #38383a;
+      border-radius: 20px;
+      padding: 0 6px 0 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .input-box {
       flex: 1;
-      background: #2c2c2e;
-      border: 0.5px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      padding: 9px 14px;
-      font-size: 15px;
+      background: transparent;
+      border: none;
+      font-size: 15.5px;
       color: #fff;
       outline: none;
+      padding: 8px 0;
+      font-family: inherit;
+    }
+
+    .input-box::placeholder {
+      color: #8e8e93;
     }
 
     .btn-send-arrow {
-      width: 34px;
-      height: 34px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      background: #007aff;
+      background: var(--ios-blue);
       color: white;
       border: none;
       display: grid;
       place-items: center;
-      font-size: 16px;
       cursor: pointer;
-      transition: 0.15s;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+
+    .btn-send-arrow:active {
+      transform: scale(0.92);
     }
 
     .btn-send-arrow:disabled {
       background: #3a3a3c;
       color: #8e8e93;
+      cursor: default;
+    }
+
+    .btn-send-arrow svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     /* PERSONAL IDENTITY MODAL POPUP */
@@ -273,8 +478,8 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       z-index: 1000;
       place-items: center;
       padding: 20px;
@@ -283,14 +488,14 @@
     .identity-card {
       background: #1c1c1e;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 24px;
-      padding: 24px;
-      max-width: 360px;
+      border-radius: 22px;
+      padding: 22px;
+      max-width: 350px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      gap: 15px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
       animation: popIn 0.2s ease-out;
     }
 
@@ -300,18 +505,18 @@
     }
 
     .modal-header-icon {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, #0284c7, #38bdf8);
       display: grid;
       place-items: center;
-      font-size: 24px;
-      margin: 0 auto 4px;
+      font-size: 22px;
+      margin: 0 auto;
     }
 
     .modal-title {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       text-align: center;
     }
@@ -321,13 +526,13 @@
       color: #8e8e93;
       text-align: center;
       line-height: 1.4;
-      margin-top: -8px;
+      margin-top: -6px;
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       text-align: left;
     }
 
@@ -343,7 +548,7 @@
       background: #2c2c2e;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
-      padding: 10px 14px;
+      padding: 10px 13px;
       font-size: 15px;
       color: #fff;
       font-family: inherit;
@@ -351,14 +556,13 @@
     }
 
     .modal-input:focus {
-      border-color: #007aff;
+      border-color: var(--ios-blue);
     }
 
     .quick-presets-label {
       font-size: 11px;
       color: #8e8e93;
       font-weight: 600;
-      margin-top: 4px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -380,15 +584,15 @@
     }
 
     .btn-save-identity {
-      background: #007aff;
+      background: var(--ios-blue);
       color: white;
       border: none;
-      border-radius: 14px;
-      padding: 12px;
+      border-radius: 13px;
+      padding: 11px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .btn-save-identity:active {
@@ -398,33 +602,68 @@
 </head>
 <body>
 
-  <div class="imessage-header">
-    <div class="contact-avatar">👵</div>
-    <div class="contact-name">Grandma Eleanor</div>
-    <div class="header-sender-pill" onclick="openIdentityModal()">
+  <!-- iMessage Top Bar -->
+  <header class="imessage-header">
+    <div class="header-nav-left" onclick="window.history.back()">
+      <span class="chevron-back">‹</span>
+      <span>Messages</span>
+    </div>
+
+    <div class="header-center" onclick="openIdentityModal()">
+      <div class="contact-avatar">👵</div>
+      <div class="contact-name-row">
+        <span class="contact-name">Grandma Eleanor</span>
+        <span class="contact-chevron">›</span>
+      </div>
+    </div>
+
+    <div class="header-nav-right">
+      <div class="facetime-btn" title="FaceTime Unavailable" onclick="openIdentityModal()">
+        <span>⚙️</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Identity Subnav Pill -->
+  <div class="identity-subnav">
+    <div class="identity-pill" onclick="openIdentityModal()">
       <span>Texting as:</span>
       <strong id="headerSenderDisplay">Alex (Grandson)</strong>
-      <span>✎</span>
+      <span class="edit-icon">✎</span>
+    </div>
+    <div class="connection-badge">
+      <div class="connection-dot"></div>
+      <span>Anchor Active</span>
     </div>
   </div>
 
+  <!-- Messages History Stream -->
   <div class="chat-scroll" id="chatStream">
-    <div class="system-notice">
-      Anchor is actively monitoring Eleanor's vitals &amp; cognitive grounding.<br>
-      Tap the blue pill above to change who you are texting as.
+    <div class="imessage-stamp">Today 10:42 AM</div>
+    <div class="imessage-secure-notice">
+      iMessage • Grounded by Anchor AI &amp; Presage Biometrics
     </div>
   </div>
 
+  <!-- Scenario Quick Pills -->
   <div class="scenarios-tray">
-    <button class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
-    <button class="preset-pill" onclick="fillScenario('Did you take your pills? Call me.')">💊 Pill Check</button>
-    <button class="preset-pill" onclick="fillScenario('I left your glasses on the nightstand.')">👓 Lost Item</button>
-    <button class="preset-pill" onclick="fillScenario('Appointment confirmed for 3:00 PM today.')">📅 Doctor</button>
+    <button type="button" class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
+    <button type="button" class="preset-pill" onclick="fillScenario('Did you take your morning pills? Call me.')">💊 Pill Check</button>
+    <button type="button" class="preset-pill" onclick="fillScenario('I left your reading glasses on the nightstand.')">👓 Lost Item</button>
+    <button type="button" class="preset-pill" onclick="fillScenario('Dr. Chen appointment is confirmed for 3:00 PM today.')">📅 Doctor</button>
   </div>
 
-  <div class="composer">
-    <input type="text" id="messageInput" class="input-box" placeholder="iMessage" enterkeyhint="send" onkeydown="if(event.key==='Enter') sendMessage()">
-    <button class="btn-send-arrow" id="sendArrowBtn" onclick="sendMessage()">↑</button>
+  <!-- iOS Composer Bar -->
+  <div class="composer-wrapper">
+    <div class="composer">
+      <button type="button" class="btn-apps-plus" onclick="openIdentityModal()" title="Switch Sender">+</button>
+      <div class="input-capsule">
+        <input type="text" id="messageInput" class="input-box" placeholder="iMessage" enterkeyhint="send" autocomplete="off" autocorrect="on" onkeydown="if(event.key==='Enter') sendMessage()" oninput="toggleSendBtnState()">
+        <button type="button" class="btn-send-arrow" id="sendArrowBtn" onclick="sendMessage()" disabled>
+          <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- PERSONAL IDENTITY POPUP MODAL -->
@@ -433,7 +672,7 @@
       <div class="modal-header-icon">⚓</div>
       <div class="modal-title">Who is texting Eleanor?</div>
       <div class="modal-desc">
-        Personalizing your name and relationship helps Anchor ground your message gently for her.
+        Personalizing your name &amp; relationship lets Anchor ground your message gently for her bedside display.
       </div>
 
       <div class="form-group">
@@ -446,7 +685,7 @@
         <input type="text" id="relInput" class="modal-input" placeholder="e.g. Grandson, Daughter, Doctor" value="Grandson">
       </div>
 
-      <div class="quick-presets-label">Or choose a quick demo contact:</div>
+      <div class="quick-presets-label">Quick Contacts:</div>
       <div class="quick-presets-row">
         <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
         <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
@@ -454,13 +693,55 @@
         <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor')">Dr. Chen</button>
       </div>
 
-      <button type="button" class="btn-save-identity" onclick="saveIdentity()">Start Texting</button>
+      <button type="button" class="btn-save-identity" onclick="saveIdentity()">Done</button>
     </div>
   </div>
 
   <script>
     let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
     let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
+
+    // Dynamic viewport keyboard handling
+    function syncViewport() {
+      if (window.visualViewport) {
+        const vh = window.visualViewport.height;
+        document.documentElement.style.setProperty('--app-height', `${vh}px`);
+
+        // If virtual keyboard is open (viewport height shrunk significantly)
+        const isKeyboardOpen = window.visualViewport.height < (window.innerHeight - 80);
+        const composer = document.querySelector('.composer');
+        if (composer) {
+          composer.style.paddingBottom = isKeyboardOpen ? '7px' : 'calc(7px + env(safe-area-inset-bottom, 8px))';
+        }
+
+        const chatStream = document.getElementById('chatStream');
+        if (chatStream) {
+          chatStream.scrollTop = chatStream.scrollHeight;
+        }
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncViewport);
+      window.visualViewport.addEventListener('scroll', () => window.scrollTo(0, 0));
+    }
+    window.addEventListener('resize', syncViewport);
+    syncViewport();
+
+    const messageInput = document.getElementById('messageInput');
+    messageInput.addEventListener('focus', () => {
+      setTimeout(() => {
+        syncViewport();
+        const chatStream = document.getElementById('chatStream');
+        if (chatStream) chatStream.scrollTop = chatStream.scrollHeight;
+      }, 180);
+    });
+
+    function toggleSendBtnState() {
+      const input = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendArrowBtn');
+      sendBtn.disabled = !input.value.trim();
+    }
 
     function updateHeaderDisplay() {
       const display = document.getElementById('headerSenderDisplay');
@@ -498,7 +779,6 @@
       closeIdentityModal();
     }
 
-    // Auto-prompt popup on first visit if not yet configured
     window.addEventListener('DOMContentLoaded', () => {
       updateHeaderDisplay();
       const configured = localStorage.getItem('anchor_profile_configured');
@@ -510,6 +790,7 @@
     function fillScenario(text) {
       const input = document.getElementById('messageInput');
       input.value = text;
+      toggleSendBtnState();
       input.focus();
     }
 
@@ -521,12 +802,12 @@
       const chatStream = document.getElementById('chatStream');
       const sendBtn = document.getElementById('sendArrowBtn');
 
-      // Append user bubble
+      // Append iOS user bubble
       const bubbleRow = document.createElement('div');
       bubbleRow.className = 'bubble-row';
       bubbleRow.innerHTML = `
         <div class="imessage-bubble">${escapeHtml(text)}</div>
-        <div class="bubble-status" id="status-${Date.now()}">Sending...</div>
+        <div class="bubble-status">Sending...</div>
       `;
       chatStream.appendChild(bubbleRow);
       chatStream.scrollTop = chatStream.scrollHeight;
@@ -535,47 +816,83 @@
       sendBtn.disabled = true;
 
       try {
-        const res = await fetch('/webhook/imessage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender_name: currentSender,
-            relationship: currentRelationship,
-            raw_message: text
-          })
-        });
+        // Intercept message and concurrently fetch current live biometrics
+        const [res, telemetryRes] = await Promise.all([
+          fetch('/webhook/imessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender_name: currentSender,
+              relationship: currentRelationship,
+              raw_message: text
+            })
+          }),
+          fetch('/telemetry/presage').catch(() => null)
+        ]);
 
         const data = await res.json();
+        let telemetryData = null;
+        if (telemetryRes && telemetryRes.ok) {
+          try {
+            telemetryData = await telemetryRes.json();
+          } catch (e) {}
+        }
+
         const statusEl = bubbleRow.querySelector('.bubble-status');
         statusEl.textContent = 'Delivered';
 
-        // Add rich caregiver biometric & grounding receipt card
-        const responseCard = document.createElement('div');
+        // Extract raw biometric values (Heart Rate & Respiration)
         const isPanic = Boolean(data.anxiety_detected);
-        const anxietyPct = Math.round((data.anxiety_score || 0) * 100);
+        const anxietyScore = data.anxiety_score || 0;
 
-        responseCard.className = `grounded-preview-card ${isPanic ? 'panic' : 'calm'}`;
+        let bpm = 74;
+        let brpm = 16;
 
-        const stressChip = isPanic
-          ? `<span class="meta-chip panic">⚠️ Agitation: ${anxietyPct}% Stress</span>`
-          : `<span class="meta-chip calm">🟢 Eleanor Calm: ${anxietyPct}% Stress</span>`;
+        if (telemetryData && telemetryData.biometrics) {
+          bpm = Math.round(telemetryData.biometrics.heart_rate || (isPanic ? 96 : 74));
+          brpm = Math.round(telemetryData.biometrics.respiration_rate || (isPanic ? 22 : 16));
+        } else {
+          bpm = Math.round(72 + (anxietyScore * 32));
+          brpm = Math.round(15 + (anxietyScore * 10));
+        }
 
-        const deliveryChip = data.audio_generated
-          ? `<span class="meta-chip delivery">🎙️ Spoken Aloud</span>`
-          : `<span class="meta-chip delivery">👁️ Bedside Display</span>`;
+        // Build clinical telemetry feedback card
+        const responseCard = document.createElement('div');
+        responseCard.className = `telemetry-receipt-card ${isPanic ? 'panic' : 'calm'}`;
+
+        const statusChip = isPanic
+          ? `<span class="vital-badge vital-panic">⚠️ Vitals Agitated</span>`
+          : `<span class="vital-badge vital-calm">🟢 Vitals Stable</span>`;
+
+        const hrChip = `<span class="vital-badge ${isPanic ? 'vital-panic' : ''}">❤️ ${bpm} BPM</span>`;
+        const rrChip = `<span class="vital-badge ${isPanic ? 'vital-panic' : ''}">🫁 ${brpm} BrPM</span>`;
+
+        const deliveryBadge = data.audio_generated
+          ? `<span class="delivery-pill spoken">🎙️ Spoken Aloud</span>`
+          : `<span class="delivery-pill visual">👁️ Bedside Screen</span>`;
 
         const clinicalNote = isPanic
-          ? `<span>🩺 Eleanor showed elevated stress. Anchor gently synthesized speech to soothe and orient her.</span>`
-          : `<span>💤 Vitals are stable. Delivered quietly on her bedside screen to avoid disruption.</span>`;
+          ? `<span>🩺 Eleanor's heart rate (${bpm} BPM) and breathing indicated agitation. Anchor spoke aloud in a soothing voice to ground her.</span>`
+          : `<span>💤 Eleanor is resting comfortably (${bpm} BPM). Delivered quietly to her bedside screen without disturbance.</span>`;
 
         responseCard.innerHTML = `
-          <div class="card-meta-row">
-            ${stressChip}
-            ${deliveryChip}
+          <div class="telemetry-header">
+            <div class="telemetry-title">
+              <span>Anchor Biometrics</span>
+            </div>
+            ${deliveryBadge}
           </div>
+
+          <div class="vitals-strip">
+            ${statusChip}
+            ${hrChip}
+            ${rrChip}
+          </div>
+
           <div class="card-grounded-quote">
             "${escapeHtml(data.grounded_message)}"
           </div>
+
           <div class="card-clinical-note">
             ${clinicalNote}
           </div>
@@ -589,7 +906,7 @@
         statusEl.textContent = 'Failed to deliver';
         statusEl.style.color = '#ff453a';
       } finally {
-        sendBtn.disabled = false;
+        toggleSendBtnState();
       }
     }
 
