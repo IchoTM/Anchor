@@ -16,8 +16,6 @@
       --ios-bubble-blue: linear-gradient(180deg, #0a84ff 0%, #007aff 100%);
       --ios-bubble-gray: #26252a;
       --ios-bubble-gray-border: rgba(255, 255, 255, 0.08);
-      --ios-gray-bg: #1c1c1e;
-      --ios-field-bg: #2c2c2e;
       --ios-secondary: #8e8e93;
     }
 
@@ -139,7 +137,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       -webkit-overflow-scrolling: touch;
     }
 
@@ -188,7 +186,7 @@
       font-weight: 400;
     }
 
-    /* Incoming Gray iMessage Bubble (from Eleanor) */
+    /* Incoming Gray iMessage Bubble (Standard native style) */
     .bubble-row-incoming {
       display: flex;
       flex-direction: column;
@@ -209,144 +207,13 @@
       letter-spacing: -0.01em;
     }
 
-    /* Apple Health / CareKit Interactive iMessage Attachment */
-    .carekit-attachment {
-      align-self: flex-start;
-      background: #1c1c1e;
-      border: 0.5px solid #38383a;
-      border-radius: 18px;
-      max-width: 86%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
-      animation: fadeIn 0.2s ease-out;
+    /* Subtle tag for alerts */
+    .imessage-bubble-gray.alert-bubble {
+      border-color: rgba(255, 69, 58, 0.35);
+      background: #2a1f21;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .carekit-header {
-      background: #252528;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .carekit-header-left {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      font-weight: 700;
-      color: #98989d;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .carekit-header-left svg {
-      width: 13px;
-      height: 13px;
-      fill: #ff2d55;
-    }
-
-    .carekit-chevron {
-      color: var(--ios-secondary);
-      font-size: 12px;
-    }
-
-    .carekit-body {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .carekit-vitals-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #f2f2f7;
-    }
-
-    .carekit-status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #34c759;
-    }
-
-    .carekit-status-dot.agitated {
-      background: #ff3b30;
-      box-shadow: 0 0 6px #ff3b30;
-    }
-
-    .carekit-grounded-preview {
-      font-size: 13px;
-      color: #d1d1d6;
-      line-height: 1.38;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 8px 10px;
-      border-radius: 10px;
-      border-left: 2.5px solid #007aff;
-    }
-
-    .carekit-footer-subtext {
-      font-size: 11px;
-      color: #8e8e93;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Native Apple Message Filter / Spam Shield Notice */
-    .ios-shield-notice {
-      align-self: center;
-      max-width: 90%;
-      background: rgba(28, 28, 30, 0.92);
-      border: 0.5px solid rgba(255, 69, 58, 0.35);
-      border-radius: 16px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      animation: fadeIn 0.2s ease-out;
-    }
-
-    .shield-notice-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #ff453a;
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-
-    .shield-notice-body {
-      font-size: 12px;
-      color: #e5e5ea;
-      line-height: 1.4;
-      background: rgba(0, 0, 0, 0.25);
-      padding: 8px 10px;
-      border-radius: 8px;
-    }
-
-    .shield-notice-footer {
-      font-size: 11px;
-      color: #34c759;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Keyboard Accessory Scenario Chips - Hidden until input is active */
+    /* Keyboard Accessory Scenario Chips */
     .scenarios-tray {
       max-height: 0;
       opacity: 0;
@@ -483,7 +350,7 @@
       stroke-linejoin: round;
     }
 
-    /* PERSONAL IDENTITY MODAL POPUP */
+    /* Identity Modal Popup */
     .identity-modal {
       display: none;
       position: fixed;
@@ -638,7 +505,7 @@
   <!-- Messages History Stream -->
   <div class="chat-scroll" id="chatStream"></div>
 
-  <!-- Scenario Quick Pills (Revealed only when typing / message bar is active) -->
+  <!-- Scenario Quick Pills -->
   <div class="scenarios-tray" id="scenariosTray">
     <button type="button" class="preset-pill" onmousedown="event.preventDefault()" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
     <button type="button" class="preset-pill" onmousedown="event.preventDefault()" onclick="fillScenario('Did you take your morning pills? Call me.')">💊 Pill Check</button>
@@ -659,7 +526,7 @@
     </div>
   </div>
 
-  <!-- PERSONAL IDENTITY POPUP MODAL -->
+  <!-- Personal Identity Popup Modal -->
   <div class="identity-modal" id="identityModal">
     <div class="identity-card">
       <div class="modal-header-icon">⚓</div>
@@ -711,7 +578,7 @@
         <div class="imessage-stamp">Today 10:42 AM</div>
         <div class="imessage-secure-notice">
           ${isFamilyOrCaregiver() 
-            ? 'iMessage • Anchor CareKit &amp; Security Shield Active' 
+            ? 'iMessage • Anchor Care Assistant Active' 
             : 'iMessage with Eleanor'}
         </div>
       `;
@@ -817,28 +684,24 @@
       input.focus();
     }
 
-    // Native Apple iOS Spam / Security Warning Filter Pattern
-    function renderMaliciousWarningCard(data) {
+    // Normal incoming message bubble for security alerts
+    function renderMaliciousWarningBubble(data) {
       const chatStream = document.getElementById('chatStream');
       const senderInfo = data.sender_handle || data.sender_name || "Unknown Sender";
+      const reason = data.malicious_reason || "Emergency extortion / Grandparent scam pattern";
 
-      const warningNotice = document.createElement('div');
-      warningNotice.className = 'ios-shield-notice';
-      warningNotice.innerHTML = `
-        <div class="shield-notice-header">
-          <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg>
-          <span>Security Alert • High-Risk Scam Blocked</span>
-        </div>
-        <div class="shield-notice-body">
-          <div style="font-weight:600;margin-bottom:2px;">From: ${escapeHtml(senderInfo)}</div>
-          <div style="color:#d1d1d6;margin-bottom:4px;">"${escapeHtml(data.raw_message)}"</div>
-          <div style="font-size:11px;color:#ff9f0a;">Reason: ${escapeHtml(data.malicious_reason || "Emergency extortion / Grandparent scam pattern")}</div>
-        </div>
-        <div class="shield-notice-footer">
-          <span>✓ Shielded from Eleanor's bedside screen</span>
+      const alertRow = document.createElement('div');
+      alertRow.className = 'bubble-row-incoming';
+      alertRow.innerHTML = `
+        <div class="imessage-bubble-gray alert-bubble">
+          <strong>⚠️ [Anchor Security Alert]</strong><br>
+          Blocked suspicious text to Eleanor from <em>${escapeHtml(senderInfo)}</em>:<br>
+          "${escapeHtml(data.raw_message)}"<br><br>
+          <span style="color:#ff8e8e;font-size:13px;">Reason: ${escapeHtml(reason)}</span><br>
+          <span style="color:#8e8e93;font-size:12px;">✓ Shielded from Eleanor's screen</span>
         </div>
       `;
-      chatStream.appendChild(warningNotice);
+      chatStream.appendChild(alertRow);
       chatStream.scrollTop = chatStream.scrollHeight;
     }
 
@@ -850,7 +713,7 @@
       const chatStream = document.getElementById('chatStream');
       const sendBtn = document.getElementById('sendArrowBtn');
 
-      // 1. Native Sent Blue iMessage Bubble
+      // 1. Sent Blue iMessage Bubble
       const outgoingRow = document.createElement('div');
       outgoingRow.className = 'bubble-row-outgoing';
       outgoingRow.innerHTML = `
@@ -896,7 +759,7 @@
           }
 
           if (isFamilyOrCaregiver()) {
-            renderMaliciousWarningCard(data);
+            renderMaliciousWarningBubble(data);
           }
           return;
         }
@@ -906,71 +769,37 @@
         const anxietyScore = data.anxiety_score || 0;
 
         let bpm = 74;
-        let brpm = 16;
         if (telemetryData && telemetryData.biometrics) {
           bpm = Math.round(telemetryData.biometrics.heart_rate || (isPanic ? 96 : 74));
-          brpm = Math.round(telemetryData.biometrics.respiration_rate || (isPanic ? 22 : 16));
         } else {
           bpm = Math.round(72 + (anxietyScore * 32));
-          brpm = Math.round(15 + (anxietyScore * 10));
         }
 
-        // Subtext under sent blue bubble
         statusEl.textContent = data.audio_generated 
-          ? `Delivered • Spoken aloud to Eleanor (${bpm} BPM)` 
+          ? `Delivered • Spoken aloud (${bpm} BPM)` 
           : `Delivered quietly to bedside screen`;
 
         if (!isFamilyOrCaregiver()) {
           return;
         }
 
-        // 2. Apple Health / CareKit Interactive iMessage Attachment Card
-        const attachment = document.createElement('div');
-        attachment.className = 'carekit-attachment';
-
-        const dotClass = isPanic ? 'carekit-status-dot agitated' : 'carekit-status-dot';
-        const vitalsLabel = isPanic ? 'Agitation Detected' : 'Vitals Stable';
-        const deliveryLabel = data.audio_generated ? '🎙️ Spoken Aloud' : '👁️ Screen Only';
-
-        attachment.innerHTML = `
-          <div class="carekit-header">
-            <div class="carekit-header-left">
-              <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span>Anchor • CareKit &amp; Orientation</span>
-            </div>
-            <span class="carekit-chevron">›</span>
-          </div>
-          <div class="carekit-body">
-            <div class="carekit-vitals-row">
-              <div class="${dotClass}"></div>
-              <span>❤️ ${bpm} BPM</span>
-              <span style="color:#8e8e93;">•</span>
-              <span>🫁 ${brpm} BrPM</span>
-              <span style="color:#8e8e93;">•</span>
-              <span style="color:${isPanic ? '#ff453a' : '#34c759'}; font-weight:600;">${vitalsLabel}</span>
-            </div>
-            <div class="carekit-grounded-preview">
-              "${escapeHtml(data.grounded_message)}"
-            </div>
-            <div class="carekit-footer-subtext">
-              <span>${deliveryLabel}</span>
-              <span>•</span>
-              <span>${isPanic ? 'Speech intervention calmed Eleanor' : 'Resting comfortably'}</span>
-            </div>
-          </div>
-        `;
-        chatStream.appendChild(attachment);
-
-        // 3. Native Incoming Gray iMessage Speech Bubble (Eleanor's Bedside Response)
+        // 2. Incoming Gray iMessage confirmation bubble from Anchor
         const incomingRow = document.createElement('div');
         incomingRow.className = 'bubble-row-incoming';
+
+        const modeNote = data.audio_generated 
+          ? `Spoken aloud to calm agitation (${bpm} BPM)` 
+          : `Displayed on screen (Vitals stable, ${bpm} BPM)`;
+
         incomingRow.innerHTML = `
           <div class="imessage-bubble-gray">
-            Hi ${escapeHtml(currentSender)}, Eleanor saw your message on her bedside display.
+            Hi ${escapeHtml(currentSender)}, Eleanor received your message.<br><br>
+            <em>Anchor grounded it as:</em><br>
+            "${escapeHtml(data.grounded_message)}"<br><br>
+            <span style="color:#8e8e93;font-size:12px;">${modeNote}</span>
           </div>
         `;
         chatStream.appendChild(incomingRow);
-
         chatStream.scrollTop = chatStream.scrollHeight;
 
       } catch (err) {
@@ -991,7 +820,7 @@
         const data = await res.json();
         if (data.alert && data.alert.event_id && data.alert.event_id !== lastHandledAlertId) {
           lastHandledAlertId = data.alert.event_id;
-          renderMaliciousWarningCard(data.alert);
+          renderMaliciousWarningBubble(data.alert);
         }
       } catch (e) {}
     }, 2000);
