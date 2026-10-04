@@ -47,6 +47,7 @@ AVATAR_NAME_PATTERNS: Dict[str, str] = {
 # In-memory storage for audio bytes and safe message events for the bedside station
 _audio_store: Dict[str, bytes] = {}
 _recent_events: deque = deque(maxlen=50)
+_events_lock = asyncio.Lock()
 
 
 def get_stored_audio(audio_id: str) -> Optional[bytes]:
@@ -54,11 +55,13 @@ def get_stored_audio(audio_id: str) -> Optional[bytes]:
     return _audio_store.get(audio_id)
 
 
-def get_recent_events(limit: int = 15) -> List[Dict[str, Any]]:
+def get_recent_events(limit: int = 15, chronological: bool = False) -> List[Dict[str, Any]]:
     """Retrieve recent safe processed Anchor events for the bedside display."""
     events = list(_recent_events)
-    events.reverse()
-    return events[:limit]
+    if not chronological:
+        events.reverse()
+        return events[:limit]
+    return events[-limit:]
 
 
 def get_latest_event() -> Optional[Dict[str, Any]]:
@@ -451,7 +454,7 @@ async def process_photon_message(
     4. If safe:
        - Ground message via Gemini for Eleanor.
        - Evaluate Presage anxiety state to gate ElevenLabs TTS voice synthesis.
-       - Post safe grounded card with contact photo to Eleanor's tablet queue.
+       - Post safe grounded card with contact photo to Eleanor's tablet queue in thread-safe order.
     """
     sender_name, relationship, raw_message, sender_handle, sender_photo_url = parse_photon_payload(payload)
     print(f"[Anchor Pipeline] Inbound: Sender='{sender_name}', Relation='{relationship}', Handle='{sender_handle}', Photo='{sender_photo_url}', Msg='{raw_message}'")
@@ -563,6 +566,8 @@ async def process_photon_message(
         "blocked_from_patient": False,
     }
 
-    # Only safe, grounded events are posted to Eleanor's tablet stream
-    _recent_events.append(result_event)
+    # Only safe, grounded events are posted to Eleanor's tablet queue
+    async with _events_lock:
+        _recent_events.append(result_event)
+
     return result_event

@@ -236,9 +236,10 @@ async def get_presage_telemetry():
 
 
 @app.get("/api/events")
-async def list_recent_events():
+async def list_recent_events(limit: int = 20, order: str = "newest"):
     """Returns recent safe message grounding events for the bedside station."""
-    return {"events": get_recent_events()}
+    is_chronological = (order.lower() == "chronological")
+    return {"events": get_recent_events(limit=limit, chronological=is_chronological)}
 
 
 @app.get("/api/events/latest")
