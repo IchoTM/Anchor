@@ -364,31 +364,79 @@ async def serve_mobile_caregiver():
       padding-right: 4px;
     }
 
+    /* Caregiver Telemetry Card */
     .grounded-preview-card {
       align-self: flex-start;
       background: #1c1c1e;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-left: 3px solid #38bdf8;
-      border-radius: 4px 16px 16px 16px;
-      padding: 12px 14px;
-      max-width: 88%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px;
+      max-width: 90%;
       display: flex;
       flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .grounded-preview-card.calm {
+      border-left: 3.5px solid #10b981;
+    }
+
+    .grounded-preview-card.panic {
+      border-left: 3.5px solid #f43f5e;
+    }
+
+    .card-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 6px;
     }
 
-    .grounded-preview-card .tag {
-      font-size: 10px;
+    .meta-chip {
+      font-size: 10.5px;
       font-weight: 700;
-      color: #38bdf8;
-      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
       text-transform: uppercase;
     }
 
-    .grounded-preview-card .text {
-      font-size: 13px;
-      color: #e5e5ea;
+    .meta-chip.calm {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 0.5px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .meta-chip.panic {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 0.5px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .meta-chip.delivery {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 0.5px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .card-grounded-quote {
+      font-size: 13.5px;
+      color: #f3f4f6;
+      line-height: 1.42;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-clinical-note {
+      font-size: 11.5px;
+      color: #9ca3af;
       line-height: 1.35;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
     }
 
     /* Scenario Quick Chips */
@@ -738,14 +786,38 @@ async def serve_mobile_caregiver():
         const statusEl = bubbleRow.querySelector('.bubble-status');
         statusEl.textContent = 'Delivered';
 
-        // Add grounding receipt
+        // Add rich caregiver biometric & grounding receipt card
         const responseCard = document.createElement('div');
-        responseCard.className = 'grounded-preview-card';
-        const voiceBadge = data.audio_generated ? '🎙️ Spoken Aloud to Eleanor' : '👁️ Bedside Display Only';
+        const isPanic = Boolean(data.anxiety_detected);
+        const anxietyPct = Math.round((data.anxiety_score || 0) * 100);
+
+        responseCard.className = `grounded-preview-card ${isPanic ? 'panic' : 'calm'}`;
+
+        const stressChip = isPanic
+          ? `<span class="meta-chip panic">⚠️ Agitation: ${anxietyPct}% Stress</span>`
+          : `<span class="meta-chip calm">🟢 Eleanor Calm: ${anxietyPct}% Stress</span>`;
+
+        const deliveryChip = data.audio_generated
+          ? `<span class="meta-chip delivery">🎙️ Spoken Aloud</span>`
+          : `<span class="meta-chip delivery">👁️ Bedside Display</span>`;
+
+        const clinicalNote = isPanic
+          ? `<span>🩺 Eleanor showed elevated stress. Anchor gently synthesized speech to soothe and orient her.</span>`
+          : `<span>💤 Vitals are stable. Delivered quietly on her bedside screen to avoid disruption.</span>`;
+
         responseCard.innerHTML = `
-          <div class="tag">Anchor • ${voiceBadge}</div>
-          <div class="text">"${escapeHtml(data.grounded_message)}"</div>
+          <div class="card-meta-row">
+            ${stressChip}
+            ${deliveryChip}
+          </div>
+          <div class="card-grounded-quote">
+            "${escapeHtml(data.grounded_message)}"
+          </div>
+          <div class="card-clinical-note">
+            ${clinicalNote}
+          </div>
         `;
+
         chatStream.appendChild(responseCard);
         chatStream.scrollTop = chatStream.scrollHeight;
 
