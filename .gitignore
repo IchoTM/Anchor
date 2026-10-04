@@ -28,8 +28,16 @@ env/
 
 # Environment Variables & Secrets
 .env
-.env.local
+.env.*
 *.env
+*.pem
+*.key
+
+# Aider Configuration, Metadata & History
+.aider*
+.aider.chat.history.md
+.aider.input.history.txt
+.aider.tags.cache.v3/
 
 # IDE & OS
 .vscode/
@@ -38,6 +46,11 @@ env/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Accidental artifacts
+python main.py
+cp .env.example .env
+*•*
 
 # Runtime Generated Cache
 static/avatars/processed/face_*.jpg
