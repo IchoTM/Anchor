@@ -370,14 +370,25 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
         elif sender_name in contacts:
             relationship = contacts[sender_name].get("relationship", "")
 
-    # Format phone number for readability if sender has no explicit name
-    if not sender_name or sender_name == sender_handle:
-        if sender_handle.startswith("+") and len(sender_handle) >= 10:
-            sender_name = f"Phone ({sender_handle})"
-            if not relationship:
-                relationship = "Unknown Contact"
+    # Clean check: Is the sender name essentially a phone number?
+    clean_sender = (sender_name or "").strip()
+    is_phone_identifier = (
+        clean_sender.startswith("+")
+        or clean_sender.lower().startswith("phone")
+        or (clean_sender.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace(".", "").isdigit())
+    )
+
+    # Format phone numbers calmly without exposing raw numbers to a confused patient
+    if not sender_name or sender_name == sender_handle or is_phone_identifier:
+        # Preserve original handle for caregiver logging/verification
+        if not sender_handle:
+            sender_handle = clean_sender
+
+        if not relationship or "unknown" in relationship.lower():
+            sender_name = "Family or Friend"
+            relationship = "Loved One"
         else:
-            sender_name = sender_handle or "Unknown Contact"
+            sender_name = f"Your {relationship}"
 
     if not relationship:
         relationship = "Family Member"

@@ -337,12 +337,23 @@
       height: 100%;
       border-radius: 28px;
       background: linear-gradient(135deg, #0369a1, #0284c7);
-      display: grid;
-      place-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       font-size: clamp(64px, 8vw, 92px);
       font-weight: 700;
       color: #ffffff;
       flex-shrink: 0;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .sender-monogram svg {
+      width: 60%;
+      height: 60%;
+      color: #ffffff;
+      opacity: 0.95;
     }
 
     .sender-details {
@@ -727,8 +738,10 @@
       <div class="message-sender-header">
         <div class="sender-profile">
           <div class="sender-avatar-wrapper">
-            <img id="senderPhoto" class="sender-photo" src="" alt="Contact Photo" crossOrigin="anonymous" style="display: none;" onerror="this.style.display='none'; document.getElementById('senderMonogram').style.display='grid';">
-            <div class="sender-monogram" id="senderMonogram">--</div>
+            <img id="senderPhoto" class="sender-photo" src="" alt="Contact Photo" crossOrigin="anonymous" style="display: none;" onerror="this.style.display='none'; document.getElementById('senderMonogram').style.display='flex';">
+            <div class="sender-monogram" id="senderMonogram">
+              <!-- Replaced dynamically with initials or warm silhouette icon -->
+            </div>
           </div>
           <div class="sender-details">
             <h2 id="senderNameDisplay">Sender</h2>
@@ -993,11 +1006,68 @@
       window.addEventListener(eventName, () => unlockAudio(false), { once: true, passive: true });
     });
 
-    function getMonogram(name) {
-      if (!name) return 'FM';
-      const parts = name.trim().split(/\s+/);
-      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-      return (parts[0][0] + parts[1][0]).toUpperCase();
+    // Clean Dementia-Friendly Monogram & Silhouette Renderer
+    function renderFallbackAvatar(monogramEl, name, relationship) {
+      if (!monogramEl) return;
+
+      // Extract only alphabetic characters
+      const cleanName = (name || '').trim();
+      const alphaOnly = cleanName.replace(/[^a-zA-Z\s]/g, '').trim();
+
+      // Check if this is a phone number or unsaved contact without clean letters
+      const isPhoneOrSymbol = !alphaOnly || cleanName.startsWith('+') || cleanName.toLowerCase().startsWith('phone');
+
+      if (isPhoneOrSymbol) {
+        // Render a warm, reassuring persona silhouette SVG instead of cryptic "+(" or raw numbers
+        monogramEl.style.background = 'linear-gradient(135deg, #0d9488, #0284c7)';
+        monogramEl.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        `;
+        return;
+      }
+
+      // Valid letters exist: generate a 2-letter clean monogram
+      const parts = alphaOnly.split(/\s+/).filter(Boolean);
+      let letters = 'FM';
+      if (parts.length === 1) {
+        letters = parts[0].substring(0, 2).toUpperCase();
+      } else if (parts.length >= 2) {
+        letters = (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+
+      monogramEl.style.background = 'linear-gradient(135deg, #0369a1, #0284c7)';
+      monogramEl.textContent = letters;
+    }
+
+    // Resolves a dementia-safe, non-alarming display name for Eleanor's screen
+    function getDementiaSafeDisplayName(rawName, relationship) {
+      const clean = (rawName || '').trim();
+      const isPhone = clean.startsWith('+') || clean.toLowerCase().startsWith('phone') || /^[0-9\s\(\)\-\.]+$/.test(clean);
+
+      if (isPhone || !clean) {
+        if (relationship && !relationship.toLowerCase().includes('unknown')) {
+          return `Your ${relationship}`;
+        }
+        return "Family or Friend";
+      }
+
+      if (clean.toLowerCase().includes('unknown')) {
+        return "Someone Checking In";
+      }
+
+      return clean;
+    }
+
+    // Resolves a calming relationship badge text
+    function getDementiaSafeRelationship(relationship) {
+      const rel = (relationship || '').trim();
+      if (!rel || rel.toLowerCase().includes('unknown')) {
+        return "Message from a Loved One";
+      }
+      return `Your ${rel}`;
     }
 
     // Adaptive Face Detection & Zoom centering
@@ -1150,7 +1220,8 @@
       ambient.style.transform = 'scale(1)';
 
       if (lastMessageData && recallBtn) {
-        document.getElementById('recallSenderName').textContent = lastMessageData.sender_name || 'Family';
+        const safeName = getDementiaSafeDisplayName(lastMessageData.sender_name, lastMessageData.relationship);
+        document.getElementById('recallSenderName').textContent = safeName;
         recallBtn.style.display = 'inline-flex';
       }
 
@@ -1191,7 +1262,7 @@
       const photoEl = document.getElementById('senderPhoto');
       const monogramEl = document.getElementById('senderMonogram');
 
-      if (data.sender_photo_url) {
+      if (data.sender_photo_url && data.sender_photo_url.trim()) {
         photoEl.onload = () => {
           applySmartFaceFocus(photoEl);
         };
@@ -1204,13 +1275,16 @@
         }
       } else {
         photoEl.style.display = 'none';
-        monogramEl.style.display = 'grid';
-        monogramEl.textContent = getMonogram(data.sender_name);
+        monogramEl.style.display = 'flex';
+        renderFallbackAvatar(monogramEl, data.sender_name, data.relationship);
       }
 
-      // Update contents
-      document.getElementById('senderNameDisplay').textContent = data.sender_name;
-      document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
+      // Update contents with dementia-safe labels (no cryptic raw phone numbers or "+(" punctuation)
+      const safeName = getDementiaSafeDisplayName(data.sender_name, data.relationship);
+      const safeRel = getDementiaSafeRelationship(data.relationship);
+
+      document.getElementById('senderNameDisplay').textContent = safeName;
+      document.getElementById('relationshipDisplay').textContent = safeRel;
       document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
       document.getElementById('messageTimeDisplay').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
