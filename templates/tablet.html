@@ -610,8 +610,8 @@
       <button class="btn-qr-action" onclick="openQrModal()">
         <span>📱 Text Grandma Eleanor (QR Code)</span>
       </button>
-      <button class="btn-sound-gate" id="soundToggleBtn" onclick="toggleAudioPermission()">
-        <span>🔊 Enable Sound</span>
+      <button class="btn-sound-gate" id="soundToggleBtn" onclick="unlockAudio(true)">
+        <span>🔊 Enable Autoplay Sound</span>
       </button>
       <div class="header-badge" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 14px; border-radius:999px; border:1px solid var(--card-border); font-size:13px;">
         <div class="pulse-dot"></div>
@@ -771,11 +771,11 @@
         </div>
 
         <button class="btn-replay" id="replayBtn" style="display: none;" onclick="replayAudio()">
-          <span>🔊 Play Voice</span>
+          <span>🔊 Replay Voice</span>
         </button>
       </div>
 
-      <audio id="audioElement"></audio>
+      <audio id="audioElement" preload="auto"></audio>
     </div>
 
   </div>
@@ -803,8 +803,59 @@
     let currentAudioUrl = null;
     let lastEventId = null;
     let audioUnlocked = false;
+    let audioCtx = null;
 
     const serverPublicUrl = "{{ public_url }}";
+
+    // Mark sound active on the button
+    function markSoundActive() {
+      const soundBtn = document.getElementById('soundToggleBtn');
+      if (soundBtn) {
+        soundBtn.classList.add('active');
+        soundBtn.innerHTML = '<span>🔊 Autoplay Active</span>';
+      }
+    }
+
+    // Unlock browser audio context so subsequent inbound voice messages play immediately
+    function unlockAudio(userExplicit = false) {
+      if (audioUnlocked && !userExplicit) return;
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          if (!audioCtx) audioCtx = new AudioContextClass();
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const buf = audioCtx.createBuffer(1, 1, 22050);
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+          src.connect(audioCtx.destination);
+          src.start(0);
+        }
+      } catch (e) {}
+
+      const audioEl = document.getElementById('audioElement');
+      if (audioEl) {
+        // Unlock HTMLAudioElement with silent 1-sample WAV
+        audioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        audioEl.play().then(() => {
+          audioUnlocked = true;
+          markSoundActive();
+        }).catch(() => {
+          audioUnlocked = true;
+          markSoundActive();
+        });
+      } else {
+        audioUnlocked = true;
+        markSoundActive();
+      }
+    }
+
+    // Passively unlock audio on ANY user click, touch, or key interaction
+    ['click', 'touchstart', 'keydown', 'mousedown'].forEach(eventName => {
+      window.addEventListener(eventName, () => unlockAudio(false), { once: true, passive: true });
+    });
 
     async function resolveMobileBaseUrl() {
       // 1. Try querying the server's live tunnel detector (ngrok API)
@@ -848,26 +899,6 @@
     function closeQrModal() {
       document.getElementById('qrModal').style.display = 'none';
     }
-
-    // Browser audio policy unlock
-    function toggleAudioPermission() {
-      const audioEl = document.getElementById('audioElement');
-      const soundBtn = document.getElementById('soundToggleBtn');
-      audioEl.play().then(() => {
-        audioEl.pause();
-        audioUnlocked = true;
-        soundBtn.classList.add('active');
-        soundBtn.innerHTML = '<span>🔊 Sound Active</span>';
-      }).catch(() => {
-        audioUnlocked = true;
-        soundBtn.classList.add('active');
-        soundBtn.innerHTML = '<span>🔊 Sound Active</span>';
-      });
-    }
-
-    window.addEventListener('click', () => {
-      if (!audioUnlocked) toggleAudioPermission();
-    }, { once: true });
 
     // Clock
     function updateClock() {
@@ -1013,19 +1044,33 @@
       const audioEl = document.getElementById('audioElement');
 
       if (data.audio_generated && data.audio_url) {
-        const isNewAudio = (data.audio_url !== currentAudioUrl);
         currentAudioUrl = data.audio_url;
         wave.style.opacity = '1';
-        statusText.textContent = "Anchor voice intervention playing for Eleanor...";
+        statusText.textContent = "🎙️ Speaking soothing grounding message to Eleanor...";
         statusText.style.color = 'var(--accent)';
         replayBtn.style.display = 'inline-flex';
+        replayBtn.innerHTML = '<span>🔊 Replay Voice</span>';
 
-        if (isNewAudio || audioEl.paused) {
-          audioEl.src = data.audio_url;
-          audioEl.currentTime = 0;
-          audioEl.play().catch(e => {
-            console.warn("Autoplay blocked by browser policy, click 'Play Voice' button:", e);
-            statusText.textContent = "Voice ready (Click Play Voice to listen)";
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        audioEl.src = data.audio_url;
+        audioEl.currentTime = 0;
+
+        const playPromise = audioEl.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            markSoundActive();
+          }).catch(err => {
+            console.warn("Autoplay deferred by browser:", err);
+            statusText.textContent = "🎙️ Voice ready (Tap anywhere to play aloud)";
+            window.addEventListener('click', () => {
+              if (currentAudioUrl) {
+                audioEl.play();
+                statusText.textContent = "🎙️ Speaking soothing grounding message to Eleanor...";
+              }
+            }, { once: true });
           });
         }
 
@@ -1046,6 +1091,9 @@
     function replayAudio() {
       const audioEl = document.getElementById('audioElement');
       if (currentAudioUrl) {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
         audioEl.src = currentAudioUrl;
         audioEl.currentTime = 0;
         audioEl.play();
