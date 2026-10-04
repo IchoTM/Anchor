@@ -3,361 +3,445 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anchor • Eleanor's Bedside Station</title>
+  <title>Anchor • Patient Memory Station</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #070c12;
-      --card-bg: #101925;
-      --card-border: rgba(255, 255, 255, 0.1);
-      --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.3);
-      --calm: #10b981;
-      --text: #f8fafc;
+      --bg: #0b1118;
+      --card-bg: #131c26;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-elevated: #182330;
+      --text: #f1f5f9;
       --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --accent: #38bdf8;
+      --clinical-teal: #14b8a6;
+      --calm-green: #10b981;
+      --warm-amber: #f59e0b;
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
 
     body {
-      background: radial-gradient(circle at 50% 10%, #152438 0%, #060a0f 80%);
+      background: radial-gradient(circle at 50% -10%, #152232 0%, #080d13 100%);
       color: var(--text);
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
-      padding: 24px 32px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      overflow-x: hidden;
+      padding: 24px 32px;
+      overflow: hidden;
     }
 
-    /* Ambient Kiosk Header */
-    header {
+    /* Clinical Device App Bar */
+    .device-appbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .brand {
+    .device-identity {
       display: flex;
       align-items: center;
       gap: 14px;
     }
 
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #0284c7, #38bdf8);
-      display: grid;
-      place-items: center;
-      font-size: 24px;
-      box-shadow: 0 0 24px var(--accent-glow);
-    }
-
-    .brand-title h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .brand-title p {
-      font-size: 13.5px;
-      color: var(--text-muted);
-    }
-
-    .header-actions {
+    .device-badge {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      font-size: 13px;
+      font-weight: 500;
+      color: #94a3b8;
     }
 
-    .btn-qr-action {
-      background: linear-gradient(135deg, #0284c7, #0ea5e9);
-      border: 1px solid var(--accent);
-      color: white;
-      padding: 9px 18px;
-      border-radius: 999px;
-      font-size: 13.5px;
+    .status-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--clinical-teal);
+      box-shadow: 0 0 8px rgba(20, 184, 166, 0.6);
+    }
+
+    .patient-label {
+      font-size: 15px;
       font-weight: 600;
+      color: #e2e8f0;
+      letter-spacing: -0.01em;
+    }
+
+    .device-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-device {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 0 18px var(--accent-glow);
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
 
-    .btn-qr-action:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 28px var(--accent-glow);
+    .btn-device:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.16);
     }
 
-    .btn-sound-gate {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      padding: 9px 18px;
-      border-radius: 999px;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      transition: all 0.2s;
-    }
-
-    .btn-sound-gate.active {
-      background: rgba(16, 185, 129, 0.15);
-      border-color: rgba(16, 185, 129, 0.4);
+    .btn-device.active {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
       color: #34d399;
     }
 
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--calm);
-      box-shadow: 0 0 10px var(--calm);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    /* CENTER STAGE: Eleanor's Bedside Kiosk */
-    .kiosk-wrapper {
-      max-width: 1040px;
-      width: 100%;
-      margin: 24px auto;
+    /* Main Stage */
+    .viewport-container {
       flex: 1;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      padding: 20px 0;
+      position: relative;
     }
 
-    .bedside-display {
-      background: radial-gradient(circle at 50% 20%, #172436 0%, #0d141e 100%);
-      border: 2px solid rgba(255, 255, 255, 0.12);
-      border-radius: 32px;
-      padding: 44px;
+    /* Ambient View (Default Peaceful Dementia Clock) */
+    .ambient-clock-view {
       display: flex;
       flex-direction: column;
-      gap: 32px;
-      position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-      overflow: hidden;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+      max-width: 820px;
+      width: 100%;
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
 
-    .bedside-display::after {
-      content: "";
-      position: absolute;
-      top: -40%;
-      right: -40%;
-      width: 80%;
-      height: 80%;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    /* Dementia Time Orientation Bar */
-    .orientation-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 24px;
-    }
-
-    .time-large {
-      font-size: 54px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1;
-    }
-
-    .date-large {
-      font-size: 19px;
-      color: var(--text-muted);
-      margin-top: 6px;
-      font-weight: 500;
-    }
-
-    .room-badge {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      padding: 8px 18px;
-      font-size: 14px;
+    .period-of-day-pill {
+      font-size: 15px;
       font-weight: 600;
-      color: #7dd3fc;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--clinical-teal);
+      background: rgba(20, 184, 166, 0.08);
+      border: 1px solid rgba(20, 184, 166, 0.2);
+      padding: 7px 18px;
+      border-radius: 999px;
+    }
+
+    .time-clinical {
+      font-size: 88px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .date-clinical {
+      font-size: 26px;
+      font-weight: 500;
+      color: #cbd5e1;
+      letter-spacing: -0.01em;
+    }
+
+    .orientation-assurance-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 22px 36px;
       display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 10px;
+      max-width: 640px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .orientation-assurance-card .icon {
+      font-size: 24px;
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+
+    .orientation-assurance-card p {
+      font-size: 16px;
+      color: #94a3b8;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .orientation-assurance-card strong {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .btn-recall-message {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
+      transition: all 0.2s ease;
+      margin-top: 6px;
     }
 
-    /* Grounding Message Card */
-    .grounding-hero {
+    .btn-recall-message:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: #fff;
+    }
+
+    /* Incoming Grounded Message Card */
+    .message-stage-card {
+      background: #111a24;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-xl);
+      padding: 40px 48px;
+      max-width: 900px;
+      width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 28px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px) scale(0.98);
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .sender-banner {
+    .message-stage-card.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .message-sender-header {
       display: flex;
       align-items: center;
-      gap: 20px;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 20px;
     }
 
-    .sender-avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 24px;
-      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    .sender-profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sender-monogram {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       display: grid;
       place-items: center;
-      font-size: 34px;
-      box-shadow: 0 8px 25px var(--accent-glow);
-    }
-
-    .sender-names h2 {
-      font-size: 28px;
+      font-size: 20px;
       font-weight: 700;
+      color: #38bdf8;
       letter-spacing: -0.02em;
     }
 
-    .sender-names span {
-      font-size: 17px;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .grounded-quote {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 32px;
-      line-height: 1.48;
+    .sender-details h2 {
+      font-size: 24px;
+      font-weight: 700;
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.03);
-      border-left: 5px solid var(--accent);
-      border-radius: 0 20px 20px 0;
-      padding: 28px 32px;
-      letter-spacing: -0.01em;
-      transition: all 0.3s ease;
+      letter-spacing: -0.02em;
     }
 
-    /* Audio Feedback Bar */
-    .voice-player {
-      background: rgba(20, 29, 42, 0.85);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 16px 24px;
+    .sender-relationship-badge {
+      display: inline-block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #38bdf8;
+      letter-spacing: 0.01em;
+    }
+
+    .message-arrival-time {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .grounded-body-text {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 29px;
+      line-height: 1.45;
+      color: #f8fafc;
+      font-weight: 400;
+      padding: 8px 0;
+    }
+
+    /* Action & Status Row */
+    .message-footer-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
       gap: 20px;
     }
 
-    .voice-status {
+    .voice-status-group {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 15px;
     }
 
-    .audio-wave {
+    .waveform-bars {
       display: flex;
       align-items: center;
       gap: 4px;
-      height: 22px;
+      height: 20px;
     }
 
-    .bar {
-      width: 4px;
+    .wave-line {
+      width: 3.5px;
       height: 100%;
-      background: var(--accent);
+      background: var(--clinical-teal);
       border-radius: 2px;
-      animation: wave 1.2s ease-in-out infinite;
+      transform: scaleY(0.3);
+      transition: transform 0.2s ease;
     }
 
-    .bar:nth-child(2) { animation-delay: 0.2s; height: 60%; }
-    .bar:nth-child(3) { animation-delay: 0.4s; height: 90%; }
-    .bar:nth-child(4) { animation-delay: 0.1s; height: 40%; }
+    .speaking .wave-line {
+      animation: audioPulse 1.2s ease-in-out infinite;
+    }
 
-    @keyframes wave {
-      0%, 100% { transform: scaleY(0.4); }
+    .speaking .wave-line:nth-child(2) { animation-delay: 0.2s; }
+    .speaking .wave-line:nth-child(3) { animation-delay: 0.4s; }
+    .speaking .wave-line:nth-child(4) { animation-delay: 0.1s; }
+
+    @keyframes audioPulse {
+      0%, 100% { transform: scaleY(0.3); }
       50% { transform: scaleY(1); }
     }
 
-    .btn-replay {
-      background: rgba(255, 255, 255, 0.08);
+    .voice-caption {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-action-replay {
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--card-border);
-      color: white;
+      color: #f1f5f9;
       border-radius: 12px;
-      padding: 9px 18px;
+      padding: 10px 18px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 7px;
-      transition: 0.2s;
+      gap: 8px;
+      transition: all 0.2s;
     }
 
-    .btn-replay:hover {
-      background: rgba(255, 255, 255, 0.16);
+    .btn-action-replay:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
 
-    /* Bedside Footer */
-    footer {
+    .btn-action-dismiss {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action-dismiss:hover {
+      background: #334155;
+    }
+
+    /* Ambient Device Footer */
+    .device-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #64748b;
       font-size: 13px;
+      color: var(--text-subtle);
       padding-top: 14px;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* DUAL QR MODAL */
-    .qr-modal {
+    /* Caregiver / Staff Pairing Modal */
+    .device-modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.82);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(5, 9, 14, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       z-index: 1000;
       place-items: center;
       padding: 20px;
     }
 
-    .qr-modal-card {
-      background: #141d28;
+    .device-modal-card {
+      background: #131c26;
       border: 1px solid var(--card-border);
-      border-radius: 26px;
-      padding: 28px;
-      max-width: 460px;
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      max-width: 440px;
       width: 100%;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 16px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
     }
 
-    /* QR Tab Switcher */
     .modal-tabs {
       display: flex;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.04);
       padding: 4px;
-      border-radius: 14px;
+      border-radius: 12px;
       width: 100%;
       gap: 4px;
     }
@@ -365,7 +449,7 @@
     .tab-btn {
       flex: 1;
       padding: 8px 12px;
-      border-radius: 10px;
+      border-radius: 9px;
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -376,16 +460,16 @@
     }
 
     .tab-btn.active {
-      background: #0284c7;
+      background: #2563eb;
       color: #fff;
     }
 
     .qr-img {
-      width: 210px;
-      height: 210px;
+      width: 200px;
+      height: 200px;
       background: white;
       padding: 10px;
-      border-radius: 18px;
+      border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
     }
 
@@ -403,14 +487,14 @@
 
     .tunnel-display-label {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-muted);
+      color: var(--text-subtle);
     }
 
     .tunnel-display-url {
-      font-size: 12.5px;
+      font-size: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: var(--accent);
       word-break: break-all;
@@ -429,101 +513,123 @@
       cursor: pointer;
     }
 
+    .btn-close-modal:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
     audio { display: none; }
   </style>
 </head>
 <body>
 
-  <!-- Bedside Station Ambient Header -->
-  <header>
-    <div class="brand">
-      <div class="brand-icon">⚓</div>
-      <div class="brand-title">
-        <h1>Anchor • Patient Station</h1>
-        <p>Real-Time Cognitive Grounding for Eleanor</p>
+  <!-- Clinical Device App Bar -->
+  <header class="device-appbar">
+    <div class="device-identity">
+      <div class="device-badge">
+        <div class="status-indicator"></div>
+        <span>Station Active</span>
       </div>
+      <div class="patient-label">Eleanor Vance • Room 3B</div>
     </div>
-    <div class="header-actions">
-      <button class="btn-qr-action" onclick="openQrModal()">
-        <span>📱 Connect Phone (QR Code)</span>
+
+    <div class="device-actions">
+      <button class="btn-device" id="soundToggleBtn" onclick="unlockAudio(true)" title="Ensure audio output is enabled">
+        <span id="soundIcon">🔇</span>
+        <span id="soundLabel">Enable Audio</span>
       </button>
-      <button class="btn-sound-gate" id="soundToggleBtn" onclick="unlockAudio(true)">
-        <span>🔊 Enable Autoplay Sound</span>
+
+      <button class="btn-device" id="fullscreenToggleBtn" onclick="toggleFullScreen()" title="Enter dedicated kiosk mode">
+        <span id="fsIcon">⛶</span>
+        <span id="fsLabel">Full Screen</span>
       </button>
-      <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:9px 16px; border-radius:999px; border:1px solid var(--card-border); font-size:13px;">
-        <div class="pulse-dot"></div>
-        <span>Shield Active</span>
-      </div>
+
+      <button class="btn-device" onclick="openQrModal()" title="Caregiver and phone connectivity settings">
+        <span>⚙️</span>
+        <span>Pair Phone</span>
+      </button>
     </div>
   </header>
 
-  <!-- Eleanor's Primary Kiosk Display -->
-  <div class="kiosk-wrapper">
-    <main class="bedside-display">
-      
-      <!-- Date & Time Orientation -->
-      <div class="orientation-bar">
-        <div>
-          <div class="time-large" id="clockTime">10:42 AM</div>
-          <div class="date-large" id="clockDate">Tuesday, October 24</div>
-        </div>
-        <div class="room-badge">
-          <span>🏠 Eleanor's Bedside • Room 3B</span>
-        </div>
+  <!-- Viewport Container -->
+  <main class="viewport-container">
+
+    <!-- Ambient Dementia Clock (Peaceful Default Orientation State) -->
+    <div class="ambient-clock-view" id="ambientClockView">
+      <div class="period-of-day-pill" id="periodOfDayLabel">Morning</div>
+      <div class="time-clinical" id="clockTime">--:--</div>
+      <div class="date-clinical" id="clockDate">Loading date...</div>
+
+      <div class="orientation-assurance-card">
+        <span class="icon">🌿</span>
+        <p>
+          <strong>You are resting comfortably in your room.</strong><br>
+          Everything is well. Staff and family are in touch and nearby.
+        </p>
       </div>
 
-      <!-- Grounded Message -->
-      <div class="grounding-hero">
-        <div class="sender-banner">
-          <div class="sender-avatar" id="avatarDisplay">👴</div>
-          <div class="sender-names">
-            <h2 id="senderNameDisplay">Alex</h2>
-            <span id="relationshipDisplay">Your Grandson</span>
+      <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="showCurrentMessageCard()">
+        <span>💬 View Recent Message from <strong id="recallSenderName" style="color:#fff; margin-left:2px;">Family</strong></span>
+      </button>
+    </div>
+
+    <!-- Elevated Incoming Grounded Message Card -->
+    <article class="message-stage-card" id="messageStageCard" aria-live="polite">
+      <div class="message-sender-header">
+        <div class="sender-profile">
+          <div class="sender-monogram" id="senderMonogram">--</div>
+          <div class="sender-details">
+            <h2 id="senderNameDisplay">Sender</h2>
+            <span class="sender-relationship-badge" id="relationshipDisplay">Family</span>
           </div>
         </div>
-
-        <div class="grounded-quote" id="groundedDisplay">
-          "Hi Grandma Eleanor. Your grandson, Alex, just sent you a message. He wants you to know that he is coming over and will be at your house in 10 minutes."
-        </div>
+        <div class="message-arrival-time" id="messageTimeDisplay">Just now</div>
       </div>
 
-      <!-- Audio Narration Indicator -->
-      <div class="voice-player">
-        <div class="voice-status">
-          <div class="audio-wave" id="audioWave" style="opacity: 0.3;">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
+      <div class="grounded-body-text" id="groundedDisplay">
+        Grounded message will appear here.
+      </div>
+
+      <div class="message-footer-bar">
+        <div class="voice-status-group" id="voiceStatusGroup">
+          <div class="waveform-bars" id="waveformBars">
+            <div class="wave-line"></div>
+            <div class="wave-line"></div>
+            <div class="wave-line"></div>
+            <div class="wave-line"></div>
           </div>
-          <span id="audioStatusText" style="color: var(--text-muted);">Calm state • Bedside peaceful</span>
+          <span class="voice-caption" id="voiceCaption">Message displayed</span>
         </div>
 
-        <button class="btn-replay" id="replayBtn" style="display: none;" onclick="replayAudio()">
-          <span>🔊 Replay Voice</span>
-        </button>
+        <div class="card-actions">
+          <button class="btn-action-replay" id="btnReplayAudio" style="display: none;" onclick="replayAudio()">
+            <span>🔊 Replay Voice</span>
+          </button>
+          <button class="btn-action-dismiss" onclick="dismissMessageCard()">
+            <span>Thank You / Done</span>
+          </button>
+        </div>
       </div>
+    </article>
 
-      <audio id="audioElement" preload="auto"></audio>
-    </main>
-  </div>
+    <audio id="audioElement" preload="auto"></audio>
+  </main>
 
-  <footer>
-    <span>Anchor Cognitive Firewall • Presage SDK &amp; ElevenLabs TTS</span>
-    <span>Connected to Spectrum Photon Gateway</span>
+  <!-- Clean Medical Device Footer -->
+  <footer class="device-footer">
+    <span>Bedside Memory Unit • Anchor Cognitive Support</span>
+    <span id="footerConnectionStatus">Connected to Care Network</span>
   </footer>
 
-  <!-- DUAL QR CODE MODAL FOR JUDGES & PRESENTER -->
-  <div class="qr-modal" id="qrModal" onclick="if(event.target===this) closeQrModal()">
-    <div class="qr-modal-card">
-      
+  <!-- Caregiver & Presenter Pairing Modal -->
+  <div class="device-modal" id="qrModal" onclick="if(event.target===this) closeQrModal()">
+    <div class="device-modal-card">
       <div class="modal-tabs">
-        <button class="tab-btn active" id="tabJudgeBtn" onclick="switchQrTab('judge')">📱 Text Eleanor (Judge)</button>
-        <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">🛠️ Remote Controller (Dev)</button>
+        <button class="tab-btn active" id="tabJudgeBtn" onclick="switchQrTab('judge')">📱 Send Text</button>
+        <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">🛠️ Remote Controller</button>
       </div>
 
       <p id="qrDesc" style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
-        Scan this QR code with any phone to open the iMessage interface and text Eleanor.
+        Scan with any smartphone camera to open the family iMessage interface and text Eleanor.
       </p>
 
       <img id="qrImage" class="qr-img" alt="QR Code">
@@ -540,17 +646,79 @@
   <script>
     let currentAudioUrl = null;
     let lastEventId = null;
+    let lastMessageData = null;
     let audioUnlocked = false;
     let audioCtx = null;
     let activeQrTab = 'judge';
+    let messageAutoDismissTimer = null;
 
     const serverPublicUrl = "{{ public_url }}";
 
+    // Period of day dementia orientation calculator
+    function getPeriodOfDay(hour) {
+      if (hour >= 5 && hour < 12) return 'Morning';
+      if (hour >= 12 && hour < 17) return 'Afternoon';
+      if (hour >= 17 && hour < 21) return 'Evening';
+      return 'Night';
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hour = now.getHours();
+      
+      const periodLabel = document.getElementById('periodOfDayLabel');
+      if (periodLabel) {
+        periodLabel.textContent = `${getPeriodOfDay(hour)}`;
+      }
+
+      const timeEl = document.getElementById('clockTime');
+      if (timeEl) {
+        timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      const dateEl = document.getElementById('clockDate');
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Fullscreen support
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn("Fullscreen request rejected:", err);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFs = !!document.fullscreenElement;
+      const fsIcon = document.getElementById('fsIcon');
+      const fsLabel = document.getElementById('fsLabel');
+      const fsBtn = document.getElementById('fullscreenToggleBtn');
+      if (fsIcon && fsLabel && fsBtn) {
+        fsIcon.textContent = isFs ? '✕' : '⛶';
+        fsLabel.textContent = isFs ? 'Exit Full Screen' : 'Full Screen';
+        fsBtn.classList.toggle('active', isFs);
+      }
+    });
+
+    // Sound initialization
     function markSoundActive() {
+      audioUnlocked = true;
       const soundBtn = document.getElementById('soundToggleBtn');
-      if (soundBtn) {
+      const soundIcon = document.getElementById('soundIcon');
+      const soundLabel = document.getElementById('soundLabel');
+      if (soundBtn && soundIcon && soundLabel) {
         soundBtn.classList.add('active');
-        soundBtn.innerHTML = '<span>🔊 Autoplay Active</span>';
+        soundIcon.textContent = '🔊';
+        soundLabel.textContent = 'Audio Active';
       }
     }
 
@@ -576,22 +744,172 @@
       if (audioEl) {
         audioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
         audioEl.play().then(() => {
-          audioUnlocked = true;
           markSoundActive();
         }).catch(() => {
-          audioUnlocked = true;
           markSoundActive();
         });
       } else {
-        audioUnlocked = true;
         markSoundActive();
       }
     }
 
-    ['click', 'touchstart', 'keydown', 'mousedown'].forEach(eventName => {
+    ['click', 'touchstart', 'keydown'].forEach(eventName => {
       window.addEventListener(eventName, () => unlockAudio(false), { once: true, passive: true });
     });
 
+    function getMonogram(name) {
+      if (!name) return 'FM';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    function showCurrentMessageCard() {
+      if (!lastMessageData) return;
+      renderMessageCard(lastMessageData, false);
+    }
+
+    function dismissMessageCard() {
+      if (messageAutoDismissTimer) {
+        clearTimeout(messageAutoDismissTimer);
+        messageAutoDismissTimer = null;
+      }
+
+      const audioEl = document.getElementById('audioElement');
+      if (audioEl && !audioEl.paused) {
+        audioEl.pause();
+      }
+
+      const card = document.getElementById('messageStageCard');
+      const ambient = document.getElementById('ambientClockView');
+      const recallBtn = document.getElementById('btnRecallMessage');
+
+      card.classList.remove('visible');
+      ambient.style.opacity = '1';
+      ambient.style.transform = 'scale(1)';
+
+      if (lastMessageData && recallBtn) {
+        document.getElementById('recallSenderName').textContent = lastMessageData.sender_name || 'Family';
+        recallBtn.style.display = 'inline-flex';
+      }
+    }
+
+    function scheduleAutoDismiss(seconds = 35) {
+      if (messageAutoDismissTimer) {
+        clearTimeout(messageAutoDismissTimer);
+      }
+      messageAutoDismissTimer = setTimeout(() => {
+        dismissMessageCard();
+      }, seconds * 1000);
+    }
+
+    function renderMessageCard(data, autoPlaySound = true) {
+      lastMessageData = data;
+
+      const card = document.getElementById('messageStageCard');
+      const ambient = document.getElementById('ambientClockView');
+      const recallBtn = document.getElementById('btnRecallMessage');
+
+      // Update contents
+      document.getElementById('senderMonogram').textContent = getMonogram(data.sender_name);
+      document.getElementById('senderNameDisplay').textContent = data.sender_name;
+      document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
+      document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
+      document.getElementById('messageTimeDisplay').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const voiceGroup = document.getElementById('voiceStatusGroup');
+      const voiceCaption = document.getElementById('voiceCaption');
+      const replayBtn = document.getElementById('btnReplayAudio');
+      const audioEl = document.getElementById('audioElement');
+
+      ambient.style.opacity = '0.08';
+      ambient.style.transform = 'scale(0.96)';
+      card.classList.add('visible');
+      if (recallBtn) recallBtn.style.display = 'none';
+
+      if (data.audio_generated && data.audio_url) {
+        currentAudioUrl = data.audio_url;
+        replayBtn.style.display = 'inline-flex';
+        voiceCaption.textContent = 'Speaking gentle grounding message...';
+        voiceGroup.classList.add('speaking');
+
+        if (autoPlaySound) {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+
+          audioEl.src = data.audio_url;
+          audioEl.currentTime = 0;
+
+          const playPromise = audioEl.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              markSoundActive();
+            }).catch(() => {
+              voiceCaption.textContent = 'Tap Replay Voice to listen';
+              voiceGroup.classList.remove('speaking');
+            });
+          }
+
+          audioEl.onended = () => {
+            voiceGroup.classList.remove('speaking');
+            voiceCaption.textContent = 'Spoken intervention completed';
+            // Auto dismiss 20 seconds after audio finishes
+            scheduleAutoDismiss(20);
+          };
+        } else {
+          voiceGroup.classList.remove('speaking');
+          voiceCaption.textContent = 'Voice message ready';
+          scheduleAutoDismiss(40);
+        }
+      } else {
+        currentAudioUrl = null;
+        replayBtn.style.display = 'none';
+        voiceGroup.classList.remove('speaking');
+        voiceCaption.textContent = 'Visual message delivered calmly';
+        scheduleAutoDismiss(30);
+      }
+    }
+
+    function replayAudio() {
+      const audioEl = document.getElementById('audioElement');
+      const voiceGroup = document.getElementById('voiceStatusGroup');
+      const voiceCaption = document.getElementById('voiceCaption');
+
+      if (currentAudioUrl && audioEl) {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        audioEl.src = currentAudioUrl;
+        audioEl.currentTime = 0;
+        audioEl.play().then(() => {
+          voiceGroup.classList.add('speaking');
+          voiceCaption.textContent = 'Replaying voice...';
+        }).catch(err => {
+          console.warn("Replay blocked:", err);
+        });
+
+        audioEl.onended = () => {
+          voiceGroup.classList.remove('speaking');
+          voiceCaption.textContent = 'Spoken intervention completed';
+          scheduleAutoDismiss(20);
+        };
+      }
+    }
+
+    function updateBedsideDisplay(data) {
+      if (data.is_malicious || data.blocked_from_patient) {
+        return;
+      }
+
+      if (data.event_id) {
+        lastEventId = data.event_id;
+      }
+
+      renderMessageCard(data, true);
+    }
+
+    // Modal & QR Code logic
     async function resolveMobileBaseUrl() {
       try {
         const resp = await fetch('/api/tunnel-url');
@@ -603,10 +921,6 @@
 
       if (serverPublicUrl && serverPublicUrl.length > 0 && !serverPublicUrl.startsWith("{{")) {
         return serverPublicUrl;
-      }
-
-      if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-        return window.location.origin;
       }
 
       return window.location.origin;
@@ -626,8 +940,8 @@
 
       if (desc) {
         desc.textContent = (activeQrTab === 'dev')
-          ? "Scan on the presenter's phone to simulate biometrics, send messages, and trigger scenarios."
-          : "Scan with any phone to open the iMessage simulator and text Eleanor live.";
+          ? "Scan on the caregiver/presenter phone to test biometrics, send messages, and simulate scenarios."
+          : "Scan with any smartphone camera to open the family iMessage interface and text Eleanor.";
       }
 
       const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=' + encodeURIComponent(fullUrl);
@@ -641,7 +955,7 @@
       renderQrForCurrentTab();
     }
 
-    async function openQrModal() {
+    function openQrModal() {
       document.getElementById('qrModal').style.display = 'grid';
       renderQrForCurrentTab();
     }
@@ -650,102 +964,14 @@
       document.getElementById('qrModal').style.display = 'none';
     }
 
-    // High-contrast Dementia Clock
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('clockTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('clockDate').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    function updateBedsideDisplay(data, avatar) {
-      // If a message was flagged as malicious, DO NOT show it on Eleanor's bedside screen.
-      if (data.is_malicious || data.blocked_from_patient) {
-        return;
-      }
-
-      if (data.event_id) {
-        lastEventId = data.event_id;
-      }
-
-      document.getElementById('avatarDisplay').textContent = avatar || "💬";
-      document.getElementById('senderNameDisplay').textContent = data.sender_name;
-      document.getElementById('relationshipDisplay').textContent = data.relationship ? `Your ${data.relationship}` : "Family Member";
-      document.getElementById('groundedDisplay').textContent = `"${data.grounded_message}"`;
-
-      const wave = document.getElementById('audioWave');
-      const statusText = document.getElementById('audioStatusText');
-      const replayBtn = document.getElementById('replayBtn');
-      const audioEl = document.getElementById('audioElement');
-
-      if (data.audio_generated && data.audio_url) {
-        currentAudioUrl = data.audio_url;
-        wave.style.opacity = '1';
-        statusText.textContent = "🎙️ Speaking soothing grounding message to Eleanor...";
-        statusText.style.color = 'var(--accent)';
-        replayBtn.style.display = 'inline-flex';
-        replayBtn.innerHTML = '<span>🔊 Replay Voice</span>';
-
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-
-        audioEl.src = data.audio_url;
-        audioEl.currentTime = 0;
-
-        const playPromise = audioEl.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            markSoundActive();
-          }).catch(err => {
-            console.warn("Autoplay deferred by browser policy:", err);
-            statusText.textContent = "🎙️ Voice ready (Tap anywhere to play aloud)";
-            window.addEventListener('click', () => {
-              if (currentAudioUrl) {
-                audioEl.play();
-                statusText.textContent = "🎙️ Speaking soothing grounding message to Eleanor...";
-              }
-            }, { once: true });
-          });
-        }
-
-        audioEl.onended = () => {
-          wave.style.opacity = '0.3';
-          statusText.textContent = "Voice intervention completed";
-          statusText.style.color = 'var(--text-muted)';
-        };
-      } else {
-        currentAudioUrl = null;
-        wave.style.opacity = '0.3';
-        statusText.textContent = "Calm state • Message delivered visually";
-        statusText.style.color = 'var(--calm)';
-        replayBtn.style.display = 'none';
-      }
-    }
-
-    function replayAudio() {
-      const audioEl = document.getElementById('audioElement');
-      if (currentAudioUrl) {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        audioEl.src = currentAudioUrl;
-        audioEl.currentTime = 0;
-        audioEl.play();
-        document.getElementById('audioWave').style.opacity = '1';
-        document.getElementById('audioStatusText').textContent = "Replaying voice intervention...";
-      }
-    }
-
-    // Background poller for live external safe webhooks
+    // Background poller for live incoming safe webhooks
     setInterval(async () => {
       try {
         const res = await fetch('/api/events/latest');
         const data = await res.json();
         if (data.event && data.event.event_id && data.event.event_id !== lastEventId) {
           lastEventId = data.event.event_id;
-          updateBedsideDisplay(data.event, "💬");
+          updateBedsideDisplay(data.event);
         }
       } catch (e) {}
     }, 2000);
