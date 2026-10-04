@@ -267,6 +267,10 @@
       box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
     }
 
+    .btn-recall-message * {
+      pointer-events: none;
+    }
+
     .btn-recall-message svg {
       width: 24px;
       height: 24px;
@@ -762,7 +766,7 @@
         Safe at home in <strong>Room 3B</strong> • Your family is thinking of you
       </div>
 
-      <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="showCurrentMessageCard()">
+      <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="event.stopPropagation(); showCurrentMessageCard(event)">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         <span>View Recent Message from <strong id="recallSenderName" style="color:#ffffff; margin-left:4px;">Family</strong></span>
       </button>
@@ -1226,8 +1230,22 @@
       imgEl.style.transform = 'scale(1.1)';
     }
 
-    function showCurrentMessageCard() {
-      if (!lastMessageData) return;
+    function showCurrentMessageCard(event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      if (!lastMessageData) {
+        fetch('/api/events/latest')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.event && !data.event.is_malicious && !data.event.blocked_from_patient) {
+              lastMessageData = data.event;
+              renderMessageCard(lastMessageData, false);
+            }
+          })
+          .catch(e => console.error("Error fetching latest event:", e));
+        return;
+      }
       renderMessageCard(lastMessageData, false);
     }
 
@@ -1252,11 +1270,18 @@
       }
     }
 
-    // Tap/Click anywhere on viewport or card advances or dismisses immediately
+    // Tap/Click on viewport advances or dismisses (except controls and ambient view)
     function handleViewportClick(event) {
       if (!isCardVisible) return;
-      // Ignore clicks on header controls
-      if (event.target.closest('#deviceAppbar') || event.target.closest('#qrModal')) return;
+      // Ignore clicks on header controls, pairing modal, recall button, or orientation clock
+      if (
+        event.target.closest('#deviceAppbar') ||
+        event.target.closest('#qrModal') ||
+        event.target.closest('#btnRecallMessage') ||
+        event.target.closest('#ambientClockView')
+      ) {
+        return;
+      }
       handleCardDismissOrNext();
     }
 
@@ -1596,7 +1621,7 @@
 
     let initialSyncCompleted = false;
 
-    setInterval(async () => {
+    async function syncEvents() {
       try {
         const res = await fetch('/api/events?order=chronological&limit=15');
         const data = await res.json();
@@ -1605,6 +1630,17 @@
             data.events.forEach(evt => {
               if (evt && evt.event_id) seenEventIds.add(evt.event_id);
             });
+            const safeEvents = data.events.filter(e => e && !e.is_malicious && !e.blocked_from_patient && e.grounded_message);
+            if (safeEvents.length > 0) {
+              const latest = safeEvents[safeEvents.length - 1];
+              lastMessageData = latest;
+              const recallBtn = document.getElementById('btnRecallMessage');
+              if (recallBtn && !isCardVisible) {
+                const safeName = getDementiaSafeDisplayName(latest.sender_name, latest.relationship);
+                document.getElementById('recallSenderName').textContent = safeName;
+                recallBtn.style.display = 'inline-flex';
+              }
+            }
             initialSyncCompleted = true;
             return;
           }
@@ -1616,7 +1652,10 @@
           });
         }
       } catch (e) {}
-    }, 1800);
+    }
+
+    syncEvents();
+    setInterval(syncEvents, 1800);
   </script>
 </body>
 </html>
