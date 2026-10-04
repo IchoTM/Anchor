@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Messages • Grandma Eleanor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: #000000;
+    }
+
+    body {
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100dvh;
+    }
+
+    /* iOS iMessage Header */
+    .imessage-header {
+      background: rgba(22, 22, 24, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.15);
+      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 100;
+      gap: 2px;
+    }
+
+    .contact-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      margin-bottom: 2px;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .contact-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .header-sender-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: #7dd3fc;
+      margin-top: 2px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .header-sender-pill:active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Message History Stream */
+    .chat-scroll {
+      flex: 1 1 0%;
+      min-height: 0;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .system-notice {
+      text-align: center;
+      color: #8e8e93;
+      font-size: 11px;
+      margin: 4px 0 8px;
+      line-height: 1.4;
+    }
+
+    .bubble-row {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .imessage-bubble {
+      background: #007aff;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 18px 18px 4px 18px;
+      max-width: 80%;
+      font-size: 15px;
+      line-height: 1.35;
+      word-wrap: break-word;
+    }
+
+    .bubble-status {
+      font-size: 11px;
+      color: #8e8e93;
+      padding-right: 4px;
+    }
+
+    /* Caregiver Telemetry Card */
+    .grounded-preview-card {
+      align-self: flex-start;
+      background: #1c1c1e;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px;
+      max-width: 90%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .grounded-preview-card.calm {
+      border-left: 3.5px solid #10b981;
+    }
+
+    .grounded-preview-card.panic {
+      border-left: 3.5px solid #f43f5e;
+    }
+
+    .card-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-chip {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .meta-chip.calm {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 0.5px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .meta-chip.panic {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 0.5px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .meta-chip.delivery {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 0.5px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .card-grounded-quote {
+      font-size: 13.5px;
+      color: #f3f4f6;
+      line-height: 1.42;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-clinical-note {
+      font-size: 11.5px;
+      color: #9ca3af;
+      line-height: 1.35;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    /* Scenario Quick Chips */
+    .scenarios-tray {
+      padding: 8px 12px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      background: #121214;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .preset-pill {
+      background: rgba(255, 255, 255, 0.08);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    /* Bottom Input Bar */
+    .composer {
+      background: #161618;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .input-box {
+      flex: 1;
+      background: #2c2c2e;
+      border: 0.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 9px 14px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+    }
+
+    .btn-send-arrow {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #007aff;
+      color: white;
+      border: none;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .btn-send-arrow:disabled {
+      background: #3a3a3c;
+      color: #8e8e93;
+    }
+
+    /* PERSONAL IDENTITY MODAL POPUP */
+    .identity-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 1000;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .identity-card {
+      background: #1c1c1e;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 360px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      animation: popIn 0.2s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      margin: 0 auto 4px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .modal-desc {
+      font-size: 12px;
+      color: #8e8e93;
+      text-align: center;
+      line-height: 1.4;
+      margin-top: -8px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .modal-input {
+      background: #2c2c2e;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      color: #fff;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .modal-input:focus {
+      border-color: #007aff;
+    }
+
+    .quick-presets-label {
+      font-size: 11px;
+      color: #8e8e93;
+      font-weight: 600;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .quick-presets-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .quick-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      color: #d1d5db;
+      cursor: pointer;
+    }
+
+    .btn-save-identity {
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .btn-save-identity:active {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="imessage-header">
+    <div class="contact-avatar">👵</div>
+    <div class="contact-name">Grandma Eleanor</div>
+    <div class="header-sender-pill" onclick="openIdentityModal()">
+      <span>Texting as:</span>
+      <strong id="headerSenderDisplay">Alex (Grandson)</strong>
+      <span>✎</span>
+    </div>
+  </div>
+
+  <div class="chat-scroll" id="chatStream">
+    <div class="system-notice">
+      Anchor is actively monitoring Eleanor's vitals & cognitive grounding.<br>
+      Tap the blue pill above to change who you are texting as.
+    </div>
+  </div>
+
+  <div class="scenarios-tray">
+    <button class="preset-pill" onclick="fillScenario('I will be there in 10 mins!')">⏳ 10 Mins</button>
+    <button class="preset-pill" onclick="fillScenario('Did you take your pills? Call me.')">💊 Pill Check</button>
+    <button class="preset-pill" onclick="fillScenario('I left your glasses on the nightstand.')">👓 Lost Item</button>
+    <button class="preset-pill" onclick="fillScenario('Appointment confirmed for 3:00 PM today.')">📅 Doctor</button>
+  </div>
+
+  <div class="composer">
+    <input type="text" id="messageInput" class="input-box" placeholder="iMessage" enterkeyhint="send" onkeydown="if(event.key==='Enter') sendMessage()">
+    <button class="btn-send-arrow" id="sendArrowBtn" onclick="sendMessage()">↑</button>
+  </div>
+
+  <!-- PERSONAL IDENTITY POPUP MODAL -->
+  <div class="identity-modal" id="identityModal">
+    <div class="identity-card">
+      <div class="modal-header-icon">⚓</div>
+      <div class="modal-title">Who is texting Eleanor?</div>
+      <div class="modal-desc">
+        Personalizing your name and relationship helps Anchor ground your message gently for her.
+      </div>
+
+      <div class="form-group">
+        <label for="nameInput">Your Name</label>
+        <input type="text" id="nameInput" class="modal-input" placeholder="e.g. Alex" value="Alex">
+      </div>
+
+      <div class="form-group">
+        <label for="relInput">Relationship to Eleanor</label>
+        <input type="text" id="relInput" class="modal-input" placeholder="e.g. Grandson, Daughter, Doctor" value="Grandson">
+      </div>
+
+      <div class="quick-presets-label">Or choose a quick demo contact:</div>
+      <div class="quick-presets-row">
+        <button type="button" class="quick-chip" onclick="fillProfile('Alex', 'Grandson')">Alex (Grandson)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Sarah', 'Daughter')">Sarah (Daughter)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('David', 'Son')">David (Son)</button>
+        <button type="button" class="quick-chip" onclick="fillProfile('Dr. Chen', 'Doctor')">Dr. Chen</button>
+      </div>
+
+      <button type="button" class="btn-save-identity" onclick="saveIdentity()">Start Texting</button>
+    </div>
+  </div>
+
+  <script>
+    let currentSender = localStorage.getItem('anchor_sender_name') || "Alex";
+    let currentRelationship = localStorage.getItem('anchor_sender_rel') || "Grandson";
+
+    function updateHeaderDisplay() {
+      const display = document.getElementById('headerSenderDisplay');
+      if (display) {
+        display.textContent = `${currentSender} (${currentRelationship})`;
+      }
+    }
+
+    function openIdentityModal() {
+      document.getElementById('nameInput').value = currentSender;
+      document.getElementById('relInput').value = currentRelationship;
+      document.getElementById('identityModal').style.display = 'grid';
+    }
+
+    function closeIdentityModal() {
+      document.getElementById('identityModal').style.display = 'none';
+    }
+
+    function fillProfile(name, rel) {
+      document.getElementById('nameInput').value = name;
+      document.getElementById('relInput').value = rel;
+    }
+
+    function saveIdentity() {
+      const name = document.getElementById('nameInput').value.trim();
+      const rel = document.getElementById('relInput').value.trim();
+      if (name) currentSender = name;
+      if (rel) currentRelationship = rel;
+
+      localStorage.setItem('anchor_sender_name', currentSender);
+      localStorage.setItem('anchor_sender_rel', currentRelationship);
+      localStorage.setItem('anchor_profile_configured', 'true');
+
+      updateHeaderDisplay();
+      closeIdentityModal();
+    }
+
+    // Auto-prompt popup on first visit if not yet configured
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHeaderDisplay();
+      const configured = localStorage.getItem('anchor_profile_configured');
+      if (!configured) {
+        openIdentityModal();
+      }
+    });
+
+    function fillScenario(text) {
+      const input = document.getElementById('messageInput');
+      input.value = text;
+      input.focus();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatStream = document.getElementById('chatStream');
+      const sendBtn = document.getElementById('sendArrowBtn');
+
+      // Append user bubble
+      const bubbleRow = document.createElement('div');
+      bubbleRow.className = 'bubble-row';
+      bubbleRow.innerHTML = `
+        <div class="imessage-bubble">${escapeHtml(text)}</div>
+        <div class="bubble-status" id="status-${Date.now()}">Sending...</div>
+      `;
+      chatStream.appendChild(bubbleRow);
+      chatStream.scrollTop = chatStream.scrollHeight;
+
+      input.value = '';
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/webhook/imessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_name: currentSender,
+            relationship: currentRelationship,
+            raw_message: text
+          })
+        });
+
+        const data = await res.json();
+        const statusEl = bubbleRow.querySelector('.bubble-status');
+        statusEl.textContent = 'Delivered';
+
+        // Add rich caregiver biometric & grounding receipt card
+        const responseCard = document.createElement('div');
+        const isPanic = Boolean(data.anxiety_detected);
+        const anxietyPct = Math.round((data.anxiety_score || 0) * 100);
+
+        responseCard.className = `grounded-preview-card ${isPanic ? 'panic' : 'calm'}`;
+
+        const stressChip = isPanic
+          ? `<span class="meta-chip panic">⚠️ Agitation: ${anxietyPct}% Stress</span>`
+          : `<span class="meta-chip calm">🟢 Eleanor Calm: ${anxietyPct}% Stress</span>`;
+
+        const deliveryChip = data.audio_generated
+          ? `<span class="meta-chip delivery">🎙️ Spoken Aloud</span>`
+          : `<span class="meta-chip delivery">👁️ Bedside Display</span>`;
+
+        const clinicalNote = isPanic
+          ? `<span>🩺 Eleanor showed elevated stress. Anchor gently synthesized speech to soothe and orient her.</span>`
+          : `<span>💤 Vitals are stable. Delivered quietly on her bedside screen to avoid disruption.</span>`;
+
+        responseCard.innerHTML = `
+          <div class="card-meta-row">
+            ${stressChip}
+            ${deliveryChip}
+          </div>
+          <div class="card-grounded-quote">
+            "${escapeHtml(data.grounded_message)}"
+          </div>
+          <div class="card-clinical-note">
+            ${clinicalNote}
+          </div>
+        `;
+
+        chatStream.appendChild(responseCard);
+        chatStream.scrollTop = chatStream.scrollHeight;
+
+      } catch (err) {
+        const statusEl = bubbleRow.querySelector('.bubble-status');
+        statusEl.textContent = 'Failed to deliver';
+        statusEl.style.color = '#ff453a';
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(string) {
+      const div = document.createElement('div');
+      div.textContent = string;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
