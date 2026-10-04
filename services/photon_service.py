@@ -407,25 +407,28 @@ def parse_photon_payload(payload: Dict[str, Any]) -> Tuple[str, str, str, str, O
 
 def generate_caregiver_reply(
     sender_name: str,
+    grounded_message: str,
     anxiety_detected: bool,
     biometrics: Dict[str, Any],
     audio_generated: bool,
 ) -> str:
-    """Constructs a comforting biometric confirmation sent back to family members."""
+    """Constructs a comforting biometric confirmation sent back to family members, including the grounded text."""
     patient_name = os.getenv("PATIENT_NAME", "Eleanor")
     hr = biometrics.get("heart_rate", 74.0)
 
-    if anxiety_detected:
-        intervention = "A soothing voice reminder was played at her bedside." if audio_generated else "A visual grounding card was displayed."
-        return (
-            f"Anchor Caregiver Update: We delivered and grounded your message for {patient_name}. "
-            f"Current vitals show agitation (Heart Rate: {int(hr)} BPM). {intervention}"
-        )
-    else:
-        return (
-            f"Anchor Caregiver Update: Your message was grounded and delivered to {patient_name}'s bedside screen. "
-            f"Her vitals are calm and stable (Heart Rate: {int(hr)} BPM)."
-        )
+    mode_note = (
+        f"Spoken aloud to calm agitation ({int(hr)} BPM)"
+        if audio_generated
+        else f"Displayed on screen (Vitals stable, {int(hr)} BPM)"
+    )
+
+    greeting_target = sender_name if sender_name else "there"
+    return (
+        f"Hi {greeting_target}, {patient_name} received your message.\n\n"
+        f"Anchor grounded it as:\n"
+        f'"{grounded_message}"\n\n'
+        f"{mode_note}"
+    )
 
 
 def generate_malicious_caregiver_warning(
@@ -553,6 +556,7 @@ async def process_photon_message(
 
     caregiver_reply = generate_caregiver_reply(
         sender_name=sender_name,
+        grounded_message=grounded_message,
         anxiety_detected=anxiety_detected,
         biometrics=biometrics,
         audio_generated=audio_generated,
