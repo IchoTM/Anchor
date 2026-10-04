@@ -30,10 +30,12 @@ app = FastAPI(
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
+SOUNDS_DIR = STATIC_DIR / "sounds"
 PROCESSED_AVATAR_DIR = STATIC_DIR / "avatars" / "processed"
 
-# Ensure static directories exist and mount them for contact avatars & media
+# Ensure static directories exist and mount them for contact avatars, sounds & media
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+SOUNDS_DIR.mkdir(parents=True, exist_ok=True)
 PROCESSED_AVATAR_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -84,6 +86,7 @@ class IMessageWebhookResponse(BaseModel):
     audio_generated: bool = Field(..., description="Indicates whether ElevenLabs speech audio was triggered")
     audio_id: Optional[str] = Field(None, description="Unique ID for retrieving generated audio")
     audio_url: Optional[str] = Field(None, description="Relative URL to stream the audio MP3")
+    chime_url: Optional[str] = Field(None, description="Audio chime notification for bedside station")
     sender_photo_url: Optional[str] = Field(None, description="URL or static path to contact avatar photo")
     is_malicious: bool = Field(False, description="Whether message was flagged as malicious or predatory scam")
     malicious_reason: Optional[str] = Field(None, description="Reason message was flagged as malicious")
@@ -120,6 +123,40 @@ def _detect_ngrok_tunnel_url() -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+def _is_known_family_or_contact(sender_name: str, relationship: str) -> bool:
+    """Determines whether a message originates from a recognized contact rather than a stranger."""
+    name_clean = (sender_name or "").strip()
+    rel_clean = (relationship or "").strip().lower()
+
+    if not name_clean and not rel_clean:
+        return False
+
+    is_phone_or_raw = (
+        name_clean.startswith("+")
+        or name_clean.lower().startswith("phone")
+        or name_clean.lower().startswith("unknown")
+    )
+    is_generic_rel = rel_clean in {"unknown", "stranger", "family or friend", ""}
+
+    if not is_phone_or_raw and len(name_clean) > 1:
+        return True
+
+    if not is_generic_rel:
+        return True
+
+    return False
+
+
+def _generate_safety_hold_notice(sender_name: str, relationship: str) -> str:
+    """Generates an empathetic 'Caregiver Review' receipt for recognized contacts."""
+    contact_label = sender_name if sender_name and not sender_name.startswith("+") else "family"
+    return (
+        f"Anchor Notice: For Eleanor's peace of mind, messages concerning sensitive actions, "
+        f"payments, or urgent requests are held in Caregiver Review and will not appear on her bedside display. "
+        f"If this is {contact_label}, please connect with Eleanor or her primary caregiver by phone."
+    )
 
 
 async def _parse_form_payload(request: Request) -> Dict[str, Any]:
@@ -164,23 +201,53 @@ async def _process_incoming_webhook(request: Request, source: str) -> Any:
             detail=f"Failed to process message from {source}: {exc}",
         ) from exc
 
-    # Record malicious alerts so family and caregivers monitoring receive them immediately
-    if result.get("is_malicious") or result.get("blocked_from_patient"):
-        _caregiver_alerts.append(result)
+    is_blocked_or_malicious = bool(result.get("is_malicious") or result.get("blocked_from_patient"))
 
-    print(f"[Anchor Grounded Message from {source}]: {result['grounded_message']}")
+    if is_blocked_or_malicious:
+        sender_name = result.get("sender_name", "")
+        relationship = result.get("relationship", "")
+        is_known = _is_known_family_or_contact(sender_name, relationship)
+
+        # Log full telemetry to out-of-band caregiver alerts portal
+        caregiver_alert_item = dict(result)
+        caregiver_alert_item["is_known_contact"] = is_known
+        caregiver_alert_item["caregiver_security_warning"] = (
+            result.get("malicious_reason")
+            or result.get("caregiver_reply")
+            or "Suspicious request held from Eleanor."
+        )
+        _caregiver_alerts.append(caregiver_alert_item)
+
+        # Protect Eleanor's Bedside Station from any disturbance
+        result["grounded_message"] = ""
+        result["audio_generated"] = False
+        result["audio_id"] = None
+        result["audio_url"] = None
+        result["chime_url"] = None
+
+        # Dual-Tier Feedback Policy:
+        # Tier 1 (Unknown Sender): Silent Blackhole (zero reply, prevents reconnaissance).
+        # Tier 2 (Known Family Contact): Empathetic "Held in Caregiver Review" notice.
+        # This gracefully handles false positives by prompting family to call, while halting compromised accounts.
+        if is_known:
+            result["caregiver_reply"] = _generate_safety_hold_notice(sender_name, relationship)
+        else:
+            result["caregiver_reply"] = None
+    else:
+        result.setdefault("chime_url", "/static/sounds/chime.wav")
+
+    print(f"[Anchor Grounded Message from {source}]: {result.get('grounded_message', '(blocked/held)')}")
 
     # If incoming via external Twilio SMS
     if is_form and ("From" in payload or "AccountSid" in payload):
-        if result.get("is_malicious"):
+        caregiver_reply_text = result.get("caregiver_reply")
+        if not caregiver_reply_text:
             twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>"""
-            return Response(content=twiml_response, media_type="application/xml")
-
-        caregiver_msg = result.get("caregiver_reply", "Anchor: Message delivered and grounded.")
-        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+        else:
+            twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Message>{caregiver_msg}</Message>
+    <Message>{caregiver_reply_text}</Message>
 </Response>"""
         return Response(content=twiml_response, media_type="application/xml")
 
