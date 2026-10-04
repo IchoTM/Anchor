@@ -784,7 +784,9 @@
       </div>
     </article>
 
+    <!-- Voice speech & orienting chime audio elements -->
     <audio id="audioElement" preload="auto"></audio>
+    <audio id="chimeElement" preload="auto" src="/static/sounds/chime.wav"></audio>
   </main>
 
   <!-- Clean Medical Device Footer -->
@@ -959,7 +961,7 @@
       });
     }
 
-    // Sound initialization
+    // Sound initialization & earcon playback
     function markSoundActive() {
       audioUnlocked = true;
       const soundBtn = document.getElementById('soundToggleBtn');
@@ -990,6 +992,13 @@
         }
       } catch (e) {}
 
+      // Preload & prime the orienting chime element
+      const chimeEl = document.getElementById('chimeElement');
+      if (chimeEl) {
+        chimeEl.volume = 0.55;
+        chimeEl.load();
+      }
+
       const audioEl = document.getElementById('audioElement');
       if (audioEl) {
         audioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
@@ -1001,6 +1010,24 @@
       } else {
         markSoundActive();
       }
+    }
+
+    // Safe gentle earcon trigger
+    function playOrientingChime(volume = 0.55) {
+      const chimeEl = document.getElementById('chimeElement');
+      if (!chimeEl) return Promise.resolve();
+
+      try {
+        chimeEl.currentTime = 0;
+        chimeEl.volume = volume;
+        const playPromise = chimeEl.play();
+        if (playPromise !== undefined) {
+          return playPromise.catch(err => {
+            console.debug("Chime autoplay paused:", err);
+          });
+        }
+      } catch (e) {}
+      return Promise.resolve();
     }
 
     ['click', 'touchstart', 'keydown'].forEach(eventName => {
@@ -1194,6 +1221,11 @@
         audioEl.pause();
       }
 
+      const chimeEl = document.getElementById('chimeElement');
+      if (chimeEl && !chimeEl.paused) {
+        chimeEl.pause();
+      }
+
       // If more messages are queued, transition smoothly to next message
       if (messageQueue.length > 0) {
         const nextMessage = messageQueue.shift();
@@ -1219,6 +1251,11 @@
       const audioEl = document.getElementById('audioElement');
       if (audioEl && !audioEl.paused) {
         audioEl.pause();
+      }
+
+      const chimeEl = document.getElementById('chimeElement');
+      if (chimeEl && !chimeEl.paused) {
+        chimeEl.pause();
       }
 
       isCardVisible = false;
@@ -1316,6 +1353,12 @@
       card.classList.add('visible');
       if (recallBtn) recallBtn.style.display = 'none';
 
+      // 1. Play gentle orienting earcon chime to draw Eleanor's eyes without startle
+      if (autoPlaySound) {
+        playOrientingChime(0.55);
+      }
+
+      // 2. Choreograph ElevenLabs Anchor speech or ambient dwell
       if (data.audio_generated && data.audio_url) {
         currentAudioUrl = data.audio_url;
         voiceGroup.style.display = 'flex';
@@ -1323,8 +1366,8 @@
 
         if (autoPlaySound) {
           // Visual Priming Period:
-          // Give Eleanor 1.8 seconds to visually process the familiar face and name before audio starts.
-          // This prevents sensory startle and the "disembodied voice" effect.
+          // Give Eleanor 2.0 seconds to hear the warm chime and visually register the sender's face
+          // before the Anchor voice starts speaking. Eliminates disembodied voice anxiety.
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = `A message from ${safeName}...`;
 
@@ -1369,7 +1412,7 @@
                 scheduleAutoTransition();
               }, 6000);
             };
-          }, 1800); // 1.8s clinical visual priming window
+          }, 2000); // 2.0s clinical visual & chime priming window
         } else {
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = 'Voice message ready';
