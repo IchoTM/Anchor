@@ -824,6 +824,7 @@
     let activeQrTab = 'judge';
     let messageAutoDismissTimer = null;
     let appbarHideTimeout = null;
+    let audioDelayTimer = null;
 
     // Fail-Safe Message Queue & Pacing state
     const messageQueue = [];
@@ -1178,6 +1179,11 @@
     }
 
     function handleCardDismissOrNext() {
+      if (audioDelayTimer) {
+        clearTimeout(audioDelayTimer);
+        audioDelayTimer = null;
+      }
+
       if (messageAutoDismissTimer) {
         clearTimeout(messageAutoDismissTimer);
         messageAutoDismissTimer = null;
@@ -1200,6 +1206,11 @@
     }
 
     function dismissMessageCard() {
+      if (audioDelayTimer) {
+        clearTimeout(audioDelayTimer);
+        audioDelayTimer = null;
+      }
+
       if (messageAutoDismissTimer) {
         clearTimeout(messageAutoDismissTimer);
         messageAutoDismissTimer = null;
@@ -1250,6 +1261,11 @@
     }
 
     function renderMessageCard(data, autoPlaySound = true) {
+      if (audioDelayTimer) {
+        clearTimeout(audioDelayTimer);
+        audioDelayTimer = null;
+      }
+
       lastMessageData = data;
       isCardVisible = true;
       activeCardStartTime = Date.now();
@@ -1304,36 +1320,56 @@
         currentAudioUrl = data.audio_url;
         voiceGroup.style.display = 'flex';
         replayBtn.style.display = 'inline-flex';
-        voiceCaption.textContent = 'Speaking gentle message...';
-        voiceGroup.classList.add('speaking');
 
         if (autoPlaySound) {
-          if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
+          // Visual Priming Period:
+          // Give Eleanor 1.8 seconds to visually process the familiar face and name before audio starts.
+          // This prevents sensory startle and the "disembodied voice" effect.
+          voiceGroup.classList.remove('speaking');
+          voiceCaption.textContent = `A message from ${safeName}...`;
 
-          audioEl.src = data.audio_url;
-          audioEl.currentTime = 0;
+          audioDelayTimer = setTimeout(() => {
+            if (!isCardVisible) return;
 
-          const playPromise = audioEl.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              markSoundActive();
-            }).catch(() => {
-              voiceCaption.textContent = 'Tap Listen Again to hear message';
+            if (audioCtx && audioCtx.state === 'suspended') {
+              audioCtx.resume();
+            }
+
+            voiceGroup.classList.add('speaking');
+            voiceCaption.textContent = 'Speaking gentle message...';
+
+            audioEl.src = data.audio_url;
+            audioEl.currentTime = 0;
+            // Soft ramp-up: start quiet to prevent acoustic startle peaks
+            audioEl.volume = 0.25;
+
+            const playPromise = audioEl.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                markSoundActive();
+                // Gentle fade-in over 400ms
+                let vol = 0.25;
+                const fadeInterval = setInterval(() => {
+                  vol = Math.min(1.0, vol + 0.15);
+                  if (audioEl) audioEl.volume = vol;
+                  if (vol >= 1.0) clearInterval(fadeInterval);
+                }, 80);
+              }).catch(() => {
+                voiceCaption.textContent = 'Tap Listen Again to hear message';
+                voiceGroup.classList.remove('speaking');
+                scheduleAutoTransition();
+              });
+            }
+
+            audioEl.onended = () => {
               voiceGroup.classList.remove('speaking');
-              scheduleAutoTransition();
-            });
-          }
-
-          audioEl.onended = () => {
-            voiceGroup.classList.remove('speaking');
-            voiceCaption.textContent = 'Spoken message finished';
-            // Allow 6 seconds contemplation after audio finishes before auto-advancing
-            setTimeout(() => {
-              scheduleAutoTransition();
-            }, 6000);
-          };
+              voiceCaption.textContent = 'Spoken message finished';
+              // Allow 6 seconds contemplation after audio finishes before auto-advancing
+              setTimeout(() => {
+                scheduleAutoTransition();
+              }, 6000);
+            };
+          }, 1800); // 1.8s clinical visual priming window
         } else {
           voiceGroup.classList.remove('speaking');
           voiceCaption.textContent = 'Voice message ready';
@@ -1355,6 +1391,11 @@
       const voiceCaption = document.getElementById('voiceCaption');
 
       if (currentAudioUrl && audioEl) {
+        if (audioDelayTimer) {
+          clearTimeout(audioDelayTimer);
+          audioDelayTimer = null;
+        }
+
         if (messageAutoDismissTimer) {
           clearTimeout(messageAutoDismissTimer);
           messageAutoDismissTimer = null;
@@ -1366,6 +1407,7 @@
         voiceGroup.style.display = 'flex';
         audioEl.src = currentAudioUrl;
         audioEl.currentTime = 0;
+        audioEl.volume = 1.0;
         audioEl.play().then(() => {
           voiceGroup.classList.add('speaking');
           voiceCaption.textContent = 'Playing voice message...';
