@@ -197,7 +197,7 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 22px;
+      gap: 20px;
       max-width: 960px;
       width: 100%;
       transition: opacity 0.4s ease, transform 0.4s ease;
@@ -234,43 +234,19 @@
       line-height: 1.35;
     }
 
-    /* Ambient Reassurance Banner for Disorientation Relief */
-    .ambient-reassurance-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 2px solid rgba(52, 211, 153, 0.3);
-      padding: 14px 28px;
-      border-radius: 999px;
-      margin-top: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    .reassurance-pulse-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--calm-green);
-      box-shadow: 0 0 12px rgba(52, 211, 153, 0.9);
-      animation: breathPulse 4s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes breathPulse {
-      0%, 100% { transform: scale(0.9); opacity: 0.7; }
-      50% { transform: scale(1.25); opacity: 1; }
-    }
-
-    .reassurance-text {
-      font-size: clamp(18px, 2.2vw, 22px);
+    /* Streamlined Sundowning Orientation Anchor (Zero clutter, gentle reassurance) */
+    .ambient-orientation-anchor {
+      font-size: clamp(20px, 2.4vw, 25px);
       font-weight: 600;
-      color: #e2e8f0;
-      letter-spacing: 0.01em;
+      color: #94a3b8;
+      letter-spacing: 0.02em;
+      margin-top: 4px;
+      transition: color 0.4s ease;
+      line-height: 1.4;
     }
 
-    .reassurance-text strong {
-      color: #a7f3d0;
+    .ambient-orientation-anchor strong {
+      color: #6ee7b7;
       font-weight: 700;
     }
 
@@ -287,7 +263,7 @@
       align-items: center;
       gap: 14px;
       transition: all 0.2s ease;
-      margin-top: 10px;
+      margin-top: 14px;
       box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
     }
 
@@ -767,12 +743,9 @@
       <div class="time-clinical" id="clockTime">--:--</div>
       <div class="date-clinical" id="clockDate">Loading date...</div>
 
-      <!-- Clinical Reassurance Cue to Anchor Patient Peace of Mind -->
-      <div class="ambient-reassurance-card">
-        <div class="reassurance-pulse-dot"></div>
-        <div class="reassurance-text">
-          Safe at Home in <strong>Room 3B</strong> • Eleanor, your family is thinking of you
-        </div>
+      <!-- Integrated Sundowning & Orientation Reassurance (Quiet, Clutter-Free) -->
+      <div class="ambient-orientation-anchor" id="ambientOrientationAnchor">
+        Safe at home in <strong>Room 3B</strong> • Your family is thinking of you
       </div>
 
       <button class="btn-recall-message" id="btnRecallMessage" style="display: none;" onclick="showCurrentMessageCard()">
@@ -851,7 +824,7 @@
         <button class="tab-btn" id="tabDevBtn" onclick="switchQrTab('dev')">Simulation Console</button>
       </div>
 
-      <p id="qrDesc" style="font-size: 15px; color: #cbd5e1; line-height: 1.45;">
+      <p id="qrDesc" style="font-size: 15px; color: #cbd5e1; line-line-height: 1.45;">
         Scan with any smartphone camera to open the family iMessage interface and text Eleanor.
       </p>
 
@@ -893,6 +866,19 @@
       return 'Restful Night';
     }
 
+    // Contextual Sundowning Grounding Cues tailored to typical panic hours
+    function getSundowningReassurance(hour) {
+      if (hour >= 16 && hour < 21) {
+        // Peak Sundowning window (4 PM - 9 PM): Alleviates the "I need to go to work/pack" urge
+        return 'Safe at home for the evening • <strong>Everything is taken care of</strong>';
+      } else if (hour >= 21 || hour < 5) {
+        // Night disorientation: Reassures resting place
+        return 'Safe in your room for the night • <strong>Rest peacefully until morning</strong>';
+      }
+      // Daytime baseline: Emotional attachment & safety
+      return 'Safe at home in <strong>Room 3B</strong> • Your family is thinking of you';
+    }
+
     function updateClock() {
       const now = new Date();
       const hour = now.getHours();
@@ -910,6 +896,11 @@
       const dateEl = document.getElementById('clockDate');
       if (dateEl) {
         dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+      }
+
+      const orientationAnchorEl = document.getElementById('ambientOrientationAnchor');
+      if (orientationAnchorEl) {
+        orientationAnchorEl.innerHTML = getSundowningReassurance(hour);
       }
     }
     setInterval(updateClock, 1000);
